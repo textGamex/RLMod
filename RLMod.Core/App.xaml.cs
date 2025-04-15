@@ -13,6 +13,7 @@ public partial class App : Application
     public static new App Current => (App)Application.Current;
 
     private readonly IHost _host;
+    private static readonly Logger Logger = LogManager.GetCurrentClassLogger();
 
     public App()
     {
@@ -46,9 +47,16 @@ public partial class App : Application
 
     private async void App_OnStartup(object sender, StartupEventArgs e)
     {
-        await _host.StartAsync();
-        var mainWindow = Services.GetRequiredService<MainWindow>();
-        mainWindow.Show();
+        try
+        {
+            await _host.StartAsync();
+            var mainWindow = Services.GetRequiredService<MainWindow>();
+            mainWindow.Show();
+        }
+        catch (Exception ex)
+        {
+            Logger.Error(ex, "An error occurred while starting the application");
+        }
     }
 
     protected override void OnExit(ExitEventArgs e)
