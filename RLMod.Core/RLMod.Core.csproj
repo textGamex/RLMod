@@ -9,6 +9,7 @@
     <!-- 在较老版本的 Windows 上运行，需要设置CETCompat为false, 见 https://github.com/dotnet/runtime/issues/110000 -->
     <CETCompat>false</CETCompat>
     <WarningsAsErrors>nullable</WarningsAsErrors>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
 
   <ItemGroup>
@@ -17,6 +18,7 @@
     <PackageReference Include="NLog.Extensions.Logging" Version="5.4.0" />
     <PackageReference Include="ParadoxPower" Version="0.8.6-beta" />
     <PackageReference Include="ParadoxPower.CSharpExtensions" Version="0.4.0-beta" />
+    <PackageReference Include="System.Drawing.Common" Version="9.0.4" />
   </ItemGroup>
 
   <ItemGroup>
