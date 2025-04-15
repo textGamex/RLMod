@@ -78,6 +78,7 @@ public sealed partial class MainWindowViewModel : ObservableObject
                     state.VictoryPoints = ParseVictoryPointsFormHistoryNode(node);
                 }
             }
+            states.Add(state);
         }
 
         return states;
