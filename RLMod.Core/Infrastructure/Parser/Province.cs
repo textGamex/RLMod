@@ -1,6 +1,6 @@
 ﻿namespace RLMod.Core.Infrastructure.Parser;
 
-public class Province
+public sealed class Province
 {
     public int Id { get; set; }
     public Rgb Color { get; set; }

@@ -1,28 +1,43 @@
 ﻿using System.Collections.Concurrent;
-using System.Diagnostics;
 using System.Drawing;
 using System.Drawing.Imaging;
 using System.IO;
 using System.Text.Json;
+using NLog;
 
 namespace RLMod.Core.Infrastructure.Parser;
 
-public class ProvinceParser
+public sealed class ProvinceParser
 {
+    private static readonly Logger Log = LogManager.GetCurrentClassLogger();
+
     public static void DoParser()
     {
-        Console.WriteLine("Starting province parser...");
+        Log.Info("Starting province parser...");
 
         string provincesFilePath = @"D:\SteamLibrary\steamapps\common\Hearts of Iron IV\map\provinces.bmp";
         string definitionFilePath = @"D:\SteamLibrary\steamapps\common\Hearts of Iron IV\map\definition.csv";
         string provincesJsonFilePath = @"D:\Worktable\hoi4_map_reader\State_reader\out\provinces.json";
-        Console.WriteLine($"provincesFilePath: {provincesFilePath}");
-        Console.WriteLine($"definitionFilePath: {definitionFilePath}");
-        Console.WriteLine($"provincesJsonFilePath: {provincesJsonFilePath}");
-        string[] csvLines = File.ReadAllLines(definitionFilePath);
-        SortedList<int, Province> provinces = [];
+
+        Dictionary<int, Province> provinces = [];
         Dictionary<Rgb, int> colorToProvinceId = [];
 
+        ProvinceScvParser(definitionFilePath, provinces, colorToProvinceId);
+
+        ProvinceBmpParser(provincesFilePath, provinces, colorToProvinceId);
+
+        ProvinceJsonSerialization(provincesJsonFilePath, provinces);
+        Log.Info("Province parser finish.");
+    }
+
+    private static void ProvinceScvParser(
+        string definitionFilePath,
+        Dictionary<int, Province> provinces,
+        Dictionary<Rgb, int> colorToProvinceId
+    )
+    {
+        Log.Info("Parsering {definitionFilePath}", definitionFilePath);
+        string[] csvLines = File.ReadAllLines(definitionFilePath);
         for (int i = 1; i < csvLines.Length; i++)
         {
             string[] csvFields = csvLines[i].Split(';');
@@ -42,7 +57,15 @@ public class ProvinceParser
             provinces[provinceId] = province;
             colorToProvinceId[color] = provinceId;
         }
+    }
 
+    private static void ProvinceBmpParser(
+        string provincesFilePath,
+        Dictionary<int, Province> provinces,
+        Dictionary<Rgb, int> colorToProvinceId
+    )
+    {
+        Log.Info("Parsering {provincesFilePath}", provincesFilePath);
         ConcurrentBag<(int provinceA, int provinceB)> edgePairs = [];
 
         using (Bitmap bmpProvinces = new(provincesFilePath))
@@ -103,12 +126,18 @@ public class ProvinceParser
             provinces[provinceA].Adjacencies.Add(provinceB);
             provinces[provinceB].Adjacencies.Add(provinceA);
         }
+    }
 
+    private static void ProvinceJsonSerialization(
+        string provincesJsonFilePath,
+        Dictionary<int, Province> provinces
+    )
+    {
         string jsonString = JsonSerializer.Serialize(
             provinces,
             new JsonSerializerOptions { WriteIndented = true }
         );
         File.WriteAllText(provincesJsonFilePath, jsonString);
-        Console.WriteLine("Provinces data has been written to " + provincesJsonFilePath);
+        Log.Info("Provinces data has been written to {provincesJsonFilePath}", provincesJsonFilePath);
     }
 }
