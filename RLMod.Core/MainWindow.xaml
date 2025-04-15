@@ -1,7 +1,8 @@
 ﻿<Window
     Height="450"
-    Title="MainWindow"
+    Title="RLMod"
     Width="800"
+    d:DataContext="{d:DesignInstance local:MainWindowViewModel}"
     mc:Ignorable="d"
     x:Class="RLMod.Core.MainWindow"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
@@ -9,8 +10,33 @@
     xmlns:local="clr-namespace:RLMod.Core"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
-    <StackPanel Orientation="Horizontal">
-        <TextBlock HorizontalAlignment="Center" Text="游戏目录" />
-        <TextBox MinWidth="120" VerticalAlignment="Top" />
-    </StackPanel>
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <StackPanel Grid.Row="0" Orientation="Horizontal">
+            <TextBlock
+                Margin="4,0"
+                Text="游戏目录"
+                VerticalAlignment="Center" />
+            <TextBox
+                IsReadOnly="True"
+                MinWidth="120"
+                Text="{Binding GameRootPath}"
+                VerticalAlignment="Top" />
+            <Button
+                Command="{Binding SelectGameRootPathCommand}"
+                Content="选择游戏根目录"
+                Margin="4,0" />
+        </StackPanel>
+
+        <Button
+            Command="{Binding GenerateRandomizerMapCommand}"
+            Content="生成"
+            Grid.Row="1"
+            HorizontalAlignment="Center" />
+    </Grid>
 </Window>

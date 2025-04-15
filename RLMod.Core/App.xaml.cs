@@ -13,7 +13,7 @@ public partial class App : Application
     public static new App Current => (App)Application.Current;
 
     private readonly IHost _host;
-    private static readonly Logger Logger = LogManager.GetCurrentClassLogger();
+    private static readonly Logger Log = LogManager.GetCurrentClassLogger();
 
     public App()
     {
@@ -36,8 +36,10 @@ public partial class App : Application
         settings.EnvironmentName = "Production";
 #endif
         var builder = Host.CreateApplicationBuilder(settings);
-        builder.Services.AddSingleton<MainWindow>();
 
+        builder.Services.AddSingleton<MainWindow>();
+        builder.Services.AddSingleton<MainWindowViewModel>();
+        
         // 添加 NLog 日志
         builder.Logging.ClearProviders();
         builder.Logging.AddNLog();
@@ -55,7 +57,7 @@ public partial class App : Application
         }
         catch (Exception ex)
         {
-            Logger.Error(ex, "An error occurred while starting the application");
+            Log.Error(ex, "An error occurred while starting the application");
         }
     }
 
