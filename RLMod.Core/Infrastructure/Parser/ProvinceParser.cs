@@ -1,4 +1,5 @@
 ﻿using System.Collections.Concurrent;
+using System.Diagnostics;
 using System.Drawing;
 using System.Drawing.Imaging;
 using System.IO;
@@ -41,21 +42,26 @@ public sealed class ProvinceParser
         for (int i = 1; i < csvLines.Length; i++)
         {
             string[] csvFields = csvLines[i].Split(';');
-            int provinceId = int.Parse(csvFields[0]);
-            Rgb color = new(byte.Parse(csvFields[1]), byte.Parse(csvFields[2]), byte.Parse(csvFields[3]));
+            Debug.Assert(csvFields.Length == 8, "CSV fields length is not 8");
 
-            Province province =
-                new()
-                {
-                    Id = provinceId,
-                    Color = color,
-                    ProvinceType = csvFields[4],
-                    IsCoastal = bool.Parse(csvFields[5]),
-                    Terrain = csvFields[6],
-                    ContinentId = int.Parse(csvFields[7]),
-                };
+            int provinceId = int.TryParse(csvFields[0], out int province) ? province : 0;
+            var color = new Rgb(
+                byte.TryParse(csvFields[1], out byte r) ? r : (byte)0,
+                byte.TryParse(csvFields[2], out byte g) ? g : (byte)0,
+                byte.TryParse(csvFields[3], out byte b) ? b : (byte)0
+            );
 
-            provinces[provinceId] = province;
+            var provinceData = new Province
+            {
+                Id = provinceId,
+                Color = color,
+                ProvinceType = csvFields[4],
+                IsCoastal = bool.TryParse(csvFields[5], out bool isCoastal) && isCoastal,
+                Terrain = csvFields[6],
+                ContinentId = int.TryParse(csvFields[7], out int continentId) ? continentId : 0
+            };
+
+            provinces[provinceId] = provinceData;
             colorToProvinceId[color] = provinceId;
         }
     }
