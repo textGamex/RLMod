@@ -18,11 +18,13 @@ public sealed class ProvinceParser
         string provincesFilePath = @"D:\SteamLibrary\steamapps\common\Hearts of Iron IV\map\provinces.bmp";
         string definitionFilePath = @"D:\SteamLibrary\steamapps\common\Hearts of Iron IV\map\definition.csv";
         string provincesJsonFilePath = @"D:\Worktable\hoi4_map_reader\State_reader\out\provinces.json";
-        const int initialSize = 13400;
-        Dictionary<int, Province> provinces = new Dictionary<int, Province>(initialSize);
-        Dictionary<Rgb, int> colorToProvinceId = new Dictionary<Rgb, int>(initialSize);
 
-        ProvinceScvParser(definitionFilePath, provinces, colorToProvinceId);
+        string[] csvLines = File.ReadAllLines(definitionFilePath);
+        var provinces = new Dictionary<int, Province>(csvLines.Length);
+        var colorToProvinceId = new Dictionary<Rgb, int>(csvLines.Length);
+
+        Log.Info("Parsering {Path}", definitionFilePath);
+        ProvinceScvParser(csvLines, provinces, colorToProvinceId);
 
         ProvinceBmpParser(provincesFilePath, provinces, colorToProvinceId);
 
@@ -31,28 +33,27 @@ public sealed class ProvinceParser
     }
 
     private static void ProvinceScvParser(
-        string definitionFilePath,
+        string[] csvLines,
         Dictionary<int, Province> provinces,
         Dictionary<Rgb, int> colorToProvinceId
     )
     {
-        Log.Info("Parsering {definitionFilePath}", definitionFilePath);
-        string[] csvLines = File.ReadAllLines(definitionFilePath);
         for (int i = 1; i < csvLines.Length; i++)
         {
             string[] csvFields = csvLines[i].Split(';');
             int provinceId = int.Parse(csvFields[0]);
             Rgb color = new(byte.Parse(csvFields[1]), byte.Parse(csvFields[2]), byte.Parse(csvFields[3]));
 
-            Province province = new()
-            {
-                Id = provinceId,
-                Color = color,
-                ProvinceType = csvFields[4],
-                IsCoastal = bool.Parse(csvFields[5]),
-                Terrain = csvFields[6],
-                ContinentId = int.Parse(csvFields[7]),
-            };
+            Province province =
+                new()
+                {
+                    Id = provinceId,
+                    Color = color,
+                    ProvinceType = csvFields[4],
+                    IsCoastal = bool.Parse(csvFields[5]),
+                    Terrain = csvFields[6],
+                    ContinentId = int.Parse(csvFields[7]),
+                };
 
             provinces[provinceId] = province;
             colorToProvinceId[color] = provinceId;
