@@ -18,9 +18,9 @@ public sealed class ProvinceParser
         string provincesFilePath = @"D:\SteamLibrary\steamapps\common\Hearts of Iron IV\map\provinces.bmp";
         string definitionFilePath = @"D:\SteamLibrary\steamapps\common\Hearts of Iron IV\map\definition.csv";
         string provincesJsonFilePath = @"D:\Worktable\hoi4_map_reader\State_reader\out\provinces.json";
-
-        Dictionary<int, Province> provinces = [];
-        Dictionary<Rgb, int> colorToProvinceId = [];
+        const int initialSize = 13400;
+        Dictionary<int, Province> provinces = new Dictionary<int, Province>(initialSize);
+        Dictionary<Rgb, int> colorToProvinceId = new Dictionary<Rgb, int>(initialSize);
 
         ProvinceScvParser(definitionFilePath, provinces, colorToProvinceId);
 
