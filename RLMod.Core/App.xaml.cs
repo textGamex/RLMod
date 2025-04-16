@@ -48,6 +48,7 @@ public partial class App : Application
         builder.Services.AddSingleton<MainWindowViewModel>();
 
         builder.Services.AddSingleton(AppSettingService.Load());
+        builder.Services.AddSingleton<CountryTagService>();
 
         // 添加 NLog 日志
         builder.Logging.ClearProviders();

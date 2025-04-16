@@ -1,6 +1,8 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.Win32;
+using NLog;
+using NLog.Fluent;
 using ParadoxPower.CSharpExtensions;
 using ParadoxPower.Process;
 using RLMod.Core.Extensions;
@@ -11,8 +13,9 @@ using ZLinq;
 
 namespace RLMod.Core;
 
-public sealed partial class MainWindowViewModel(AppSettingService settingService) : ObservableObject
+public sealed partial class MainWindowViewModel(AppSettingService settingService, CountryTagService tagService) : ObservableObject
 {
+    private static readonly Logger Log = LogManager.GetCurrentClassLogger();
     [ObservableProperty]
     private string _gameRootPath = settingService.GameRootFolderPath;
 
@@ -35,6 +38,8 @@ public sealed partial class MainWindowViewModel(AppSettingService settingService
     {
         string stateFolder = Path.Combine(GameRootPath, "history", "states");
         var states = GetStates(stateFolder);
+        var a = tagService.GetCountryTags();
+        Log.Info("国家标签: {0}", a.Length);
     }
 
     private List<State> GetStates(string stateFolder)
