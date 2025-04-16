@@ -47,26 +47,25 @@ public sealed partial class MainWindowViewModel(AppSettingService settingService
                 continue;
             }
 
+            // 一般来说, 一个文件中只有一个 state 节点, 但以防万一
             foreach (
                 var stateNode in rootNode
                     .Nodes.AsValueEnumerable()
                     .Where(node => node.Key.EqualsIgnoreCase("state"))
             )
             {
-                states.AddRange(GetStateFormNode(stateNode));
+                states.Add(GetStateFormNode(stateNode));
             }
         }
 
         return states;
     }
 
-    private static List<State> GetStateFormNode(Node stateNode)
+    private static State GetStateFormNode(Node stateNode)
     {
-        // 一般来说, 一个文件中只会有一个 state
-        var states = new List<State>(1);
+        var state = new State();
         foreach (var stateChild in stateNode.AllArray)
         {
-            var state = new State();
             if (stateChild.TryGetLeaf(out var leaf))
             {
                 ParseLeaf(leaf, state);
@@ -82,10 +81,9 @@ public sealed partial class MainWindowViewModel(AppSettingService settingService
                     state.VictoryPoints = ParseVictoryPointsFormHistoryNode(node);
                 }
             }
-            states.Add(state);
         }
 
-        return states;
+        return state;
     }
 
     private static void ParseLeaf(Leaf leaf, State state)
