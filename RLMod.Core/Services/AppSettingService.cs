@@ -6,7 +6,7 @@ namespace RLMod.Core.Services;
 [MemoryPackable]
 public sealed partial class AppSettingService
 {
-    [MemoryPackOrder(1)]
+    [MemoryPackOrder(0)]
     public string GameRootFolderPath
     {
         get;
