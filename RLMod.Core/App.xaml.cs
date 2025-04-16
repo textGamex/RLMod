@@ -4,6 +4,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using NLog;
 using NLog.Extensions.Logging;
+using RLMod.Core.Services;
 
 namespace RLMod.Core;
 
@@ -11,12 +12,18 @@ public partial class App : Application
 {
     public IServiceProvider Services => _host.Services;
     public static new App Current => (App)Application.Current;
+    public static string AppConfigPath { get; } = Path.Combine(Environment.CurrentDirectory, "Configs");
 
     private readonly IHost _host;
     private static readonly Logger Log = LogManager.GetCurrentClassLogger();
 
     public App()
     {
+        if (!Directory.Exists(AppConfigPath))
+        {
+            Directory.CreateDirectory(AppConfigPath);
+        }
+
         InitializeComponent();
 
         _host = CreateHost();
@@ -39,7 +46,9 @@ public partial class App : Application
 
         builder.Services.AddSingleton<MainWindow>();
         builder.Services.AddSingleton<MainWindowViewModel>();
-        
+
+        builder.Services.AddSingleton(AppSettingService.Load());
+
         // 添加 NLog 日志
         builder.Logging.ClearProviders();
         builder.Logging.AddNLog();
@@ -52,6 +61,12 @@ public partial class App : Application
         try
         {
             await _host.StartAsync();
+            _host
+                .Services.GetRequiredService<IHostApplicationLifetime>()
+                .ApplicationStopped.Register(
+                    _host.Services.GetRequiredService<AppSettingService>().SaveChanged
+                );
+
             var mainWindow = Services.GetRequiredService<MainWindow>();
             mainWindow.Show();
         }

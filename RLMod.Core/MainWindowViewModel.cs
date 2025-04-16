@@ -6,24 +6,28 @@ using ParadoxPower.Process;
 using RLMod.Core.Extensions;
 using RLMod.Core.Infrastructure.Parser;
 using RLMod.Core.Models.Map;
+using RLMod.Core.Services;
 using ZLinq;
 
 namespace RLMod.Core;
 
-public sealed partial class MainWindowViewModel : ObservableObject
+public sealed partial class MainWindowViewModel(AppSettingService settingService) : ObservableObject
 {
     [ObservableProperty]
-    private string _gameRootPath = string.Empty;
+    private string _gameRootPath = settingService.GameRootFolderPath;
 
     [RelayCommand]
     private void SelectGameRootPath()
     {
         var dialog = new OpenFolderDialog { Multiselect = false, Title = "Select Game Root Path" };
 
-        if (dialog.ShowDialog() == true)
+        if (dialog.ShowDialog() != true)
         {
-            GameRootPath = dialog.FolderName;
+            return;
         }
+
+        GameRootPath = dialog.FolderName;
+        settingService.GameRootFolderPath = GameRootPath;
     }
 
     [RelayCommand]
