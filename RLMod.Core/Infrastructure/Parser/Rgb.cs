@@ -12,7 +12,7 @@ public readonly struct Rgb(byte r, byte g, byte b) : IEquatable<Rgb>
 
     public bool Equals(Rgb other) => R == other.R && G == other.G && B == other.B;
 
-    public override readonly bool Equals(object? obj) => obj is Rgb other && Equals(other);
+    public override bool Equals(object? obj) => obj is Rgb other && Equals(other);
 
-    public override readonly int GetHashCode() => HashCode.Combine(R, G, B);
+    public override int GetHashCode() => HashCode.Combine(R, G, B);
 }
