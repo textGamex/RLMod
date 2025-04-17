@@ -1,4 +1,5 @@
 ﻿using MethodTimer;
+using RLMod.Core.Helpers;
 using RLMod.Core.Infrastructure.Parser;
 
 namespace RLMod.Core.Services;
@@ -30,13 +31,8 @@ public sealed class CountryTagService
         }
 
         var countryTags = new HashSet<string>(256);
-        foreach (string file in Directory.EnumerateFiles(folderPath, "*.txt"))
+        foreach (var rootNode in ParseHelper.ParseAllFileToNodes(folderPath, ParseFileType.Text))
         {
-            if (!TextParser.TryParse(file, out var rootNode, out _))
-            {
-                continue;
-            }
-
             var leaves = rootNode.Leaves.ToArray();
             // 不加载临时标签
             if (

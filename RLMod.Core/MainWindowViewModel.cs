@@ -5,6 +5,7 @@ using NLog;
 using ParadoxPower.CSharpExtensions;
 using ParadoxPower.Process;
 using RLMod.Core.Extensions;
+using RLMod.Core.Helpers;
 using RLMod.Core.Infrastructure.Parser;
 using RLMod.Core.Models.Map;
 using RLMod.Core.Services;
@@ -44,13 +45,8 @@ public sealed partial class MainWindowViewModel(AppSettingService settingService
     private List<State> GetStates(string stateFolder)
     {
         var states = new List<State>(1024);
-        foreach (string path in Directory.EnumerateFiles(stateFolder))
+        foreach (var rootNode in ParseHelper.ParseAllFileToNodes(stateFolder, ParseFileType.Text))
         {
-            if (!TextParser.TryParse(path, out var rootNode, out _))
-            {
-                continue;
-            }
-
             // 一般来说, 一个文件中只有一个 state 节点, 但以防万一
             foreach (
                 var stateNode in rootNode

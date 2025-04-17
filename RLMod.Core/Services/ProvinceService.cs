@@ -1,7 +1,7 @@
-﻿using System.Diagnostics.CodeAnalysis;
-using ParadoxPower.CSharpExtensions;
+﻿using ParadoxPower.CSharpExtensions;
 using ParadoxPower.Process;
 using RLMod.Core.Extensions;
+using RLMod.Core.Helpers;
 using RLMod.Core.Infrastructure.Parser;
 using RLMod.Core.Models.Map;
 using ZLinq;
@@ -15,13 +15,8 @@ public sealed class ProvinceService(AppSettingService settingService)
         string path = Path.Combine(settingService.GameRootFolderPath, "map", "strategicregions");
 
         var oceanStates = new List<IEnumerable<int>>(64);
-        foreach (string file in Directory.EnumerateFiles(path, "*.txt"))
+        foreach (var rootNode in ParseHelper.ParseAllFileToNodes(path, ParseFileType.Text))
         {
-            if (!TextParser.TryParse(file, out var rootNode, out _))
-            {
-                continue;
-            }
-
             foreach (
                 var strategicRegionNode in rootNode
                     .Nodes.AsValueEnumerable()
