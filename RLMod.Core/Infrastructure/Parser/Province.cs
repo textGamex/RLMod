@@ -1,10 +1,12 @@
-﻿namespace RLMod.Core.Infrastructure.Parser;
+﻿using RLMod.Core.Models.Map;
+
+namespace RLMod.Core.Infrastructure.Parser;
 
 public sealed class Province
 {
     public int Id { get; set; }
     public Rgb Color { get; set; }
-    public string ProvinceType { get; set; } = string.Empty;
+    public ProvinceType Type { get; set; } = ProvinceType.None;
     public bool IsCoastal { get; set; }
     public string Terrain { get; set; } = string.Empty;
     public int ContinentId { get; set; }

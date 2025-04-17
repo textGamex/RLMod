@@ -5,6 +5,8 @@ using System.Drawing.Imaging;
 using System.IO;
 using System.Text.Json;
 using NLog;
+using RLMod.Core.Extensions;
+using RLMod.Core.Models.Map;
 
 namespace RLMod.Core.Infrastructure.Parser;
 
@@ -55,7 +57,7 @@ public sealed class ProvinceParser
             {
                 Id = provinceId,
                 Color = color,
-                ProvinceType = csvFields[4],
+                Type = csvFields[4].EqualsIgnoreCase("land") ? ProvinceType.Land : ProvinceType.Sea,
                 IsCoastal = bool.TryParse(csvFields[5], out bool isCoastal) && isCoastal,
                 Terrain = csvFields[6],
                 ContinentId = int.TryParse(csvFields[7], out int continentId) ? continentId : 0
