@@ -49,6 +49,7 @@ public partial class App : Application
 
         builder.Services.AddSingleton(AppSettingService.Load());
         builder.Services.AddSingleton<CountryTagService>();
+        builder.Services.AddSingleton<ProvinceService>();
 
         // 添加 NLog 日志
         builder.Logging.ClearProviders();

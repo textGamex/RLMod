@@ -2,7 +2,6 @@
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.Win32;
 using NLog;
-using NLog.Fluent;
 using ParadoxPower.CSharpExtensions;
 using ParadoxPower.Process;
 using RLMod.Core.Extensions;
