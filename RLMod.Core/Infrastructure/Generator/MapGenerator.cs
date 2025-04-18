@@ -208,12 +208,12 @@ public sealed class MapGenerator
                     continue;
                 }
 
-                AdjustStateProperties(ref state, ratio);
+                AdjustStateProperties(state, ratio);
             }
         }
     }
 
-    private void AdjustStateProperties(ref StateMap state, double ratio)
+    private void AdjustStateProperties(StateMap state, double ratio)
     {
         var type = state.StateType;
 
