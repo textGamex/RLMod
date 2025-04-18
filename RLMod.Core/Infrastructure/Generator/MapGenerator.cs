@@ -66,10 +66,14 @@ public sealed class MapGenerator
 
             foreach (var country in countries)
             {
-                if (TryExpandCountry(country, countries))
+                var passableBorder = country.GetPassableBorder();
+                if (passableBorder.Count <= 0)
                 {
-                    changeFlag = true;
+                    continue;
                 }
+
+                ExpandCountry(country, passableBorder, countries);
+                changeFlag = true;
             }
         } while (changeFlag);
 
@@ -77,17 +81,14 @@ public sealed class MapGenerator
         return countries;
     }
 
-    private bool TryExpandCountry(CountryMap country, List<CountryMap> countries)
+    private void ExpandCountry(
+        CountryMap country,
+        IReadOnlyCollection<int> candidates,
+        List<CountryMap> countries
+    )
     {
-        var candidates = country.GetPassableBorder();
-        if (candidates.Count == 0)
-        {
-            return false;
-        }
-
         int selected = SelectState(candidates, countries);
         country.AddState(selected);
-        return true;
     }
 
     private ValueEnumerable<
