@@ -4,10 +4,10 @@ namespace RLMod.Core.Infrastructure.Generator;
 
 public sealed class CountryMap
 {
-    public CountryType Type;
+    public CountryType Type { get; private set; }
     public int Id { get; }
 
-    public IEnumerable<int> States => _states;
+    public IEnumerable<int> StatesId => _statesId;
 
     public static void SetStateMaps(Dictionary<int, StateMap> stateMaps)
     {
@@ -16,7 +16,7 @@ public sealed class CountryMap
 
     public static Dictionary<int, StateMap> StateMaps { get; private set; } = [];
 
-    private readonly HashSet<int> _states = [];
+    private readonly HashSet<int> _statesId = [];
     private readonly HashSet<int> _border = [];
 
     public CountryMap(int seed)
@@ -30,19 +30,18 @@ public sealed class CountryMap
     /// </summary>
     /// <returns>国家的价值</returns>
 
-    public double GetValue() => _states.Sum(s => StateMaps[s].GetValue());
+    public double GetValue() => _statesId.Sum(id => StateMaps[id].GetValue());
 
-    public List<int> GetPassableBorder() => _border.Where(n => !StateMaps[n].IsImpassable).ToList();
+    public IReadOnlyCollection<int> GetPassableBorder() =>
+        _border.Where(n => !StateMaps[n].IsImpassable).ToArray();
 
-    public int GetStateCount() => _states.Count;
+    public int StateCount => _statesId.Count;
 
-    public int StateCount() => _states.Count;
-
-    public bool ContainsState(int id) => _states.Contains(id);
+    public bool ContainsState(int id) => _statesId.Contains(id);
 
     public void AddState(int id)
     {
-        _states.Add(id);
+        _statesId.Add(id);
         UpdateBorders(id);
         UpdateCountryType();
     }
@@ -50,7 +49,9 @@ public sealed class CountryMap
     private void UpdateBorders(int addedState)
     {
         foreach (
-            int edge in StateMaps[addedState].Edges.AsValueEnumerable().Where(edge => !_states.Contains(edge))
+            int edge in StateMaps[addedState]
+                .Edges.AsValueEnumerable()
+                .Where(edge => !_statesId.Contains(edge))
         )
         {
             _border.Add(edge);
@@ -61,16 +62,17 @@ public sealed class CountryMap
 
     private void UpdateCountryType()
     {
-        var typeGroups = _states
+        var typeGroups = _statesId
             .Select(s => StateMaps[s].StateType)
             .GroupBy(t => t)
             .ToDictionary(g => g.Key, g => g.Count());
 
-        Type = typeGroups.OrderByDescending(g => g.Value).First().Key switch
+        var stateType = typeGroups.OrderByDescending(g => g.Value).First().Key;
+        Type = stateType switch
         {
             StateType.Industrial => CountryType.Industrial,
             StateType.Resource => CountryType.Resource,
-            _ => CountryType.Balanced,
+            _ => CountryType.Balanced
         };
     }
 }

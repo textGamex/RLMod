@@ -63,7 +63,8 @@ public sealed class MapGenerator
         do
         {
             changeFlag = false;
-            foreach (var country in countries.Where(c => c.GetPassableBorder().Count > 0))
+
+            foreach (var country in countries)
             {
                 if (TryExpandCountry(country, countries))
                 {
@@ -102,7 +103,7 @@ public sealed class MapGenerator
             .Select(s => s.Id);
     }
 
-    private int SelectState(List<int> candidates, List<CountryMap> countries)
+    private int SelectState(IReadOnlyCollection<int> candidates, List<CountryMap> countries)
     {
         var scores = candidates
             .AsValueEnumerable()
@@ -199,7 +200,7 @@ public sealed class MapGenerator
                 continue;
             }
 
-            foreach (int stateId in country.States)
+            foreach (int stateId in country.StatesId)
             {
                 var state = _stateMap[stateId];
                 if (state.IsImpassable)
@@ -312,7 +313,7 @@ public sealed class MapGenerator
                     }
                 }
 
-                if (visited.Count != country.GetStateCount())
+                if (visited.Count != country.StateCount)
                 {
                     return false;
                 }
