@@ -1,4 +1,6 @@
-﻿using ZLinq;
+﻿using MathNet.Numerics.Distributions;
+using MathNet.Numerics.Random;
+using ZLinq;
 using ZLinq.Linq;
 
 namespace RLMod.Core.Infrastructure.Generator;
@@ -35,7 +37,7 @@ public sealed class MapGenerator
             _stateMap[state.Id] = new StateMap(state, type);
         }
         _countriesCount = countriesCount;
-        _random = new Random(randomSeed);
+        _random = new MersenneTwister(randomSeed);
         _valueMean = valueMean;
         _valueStdDev = valueStdDev;
         CountryMap.SetStateMaps(_stateMap);
@@ -181,11 +183,11 @@ public sealed class MapGenerator
 
     private void ApplyValueDistribution(IReadOnlyCollection<CountryMap> countries)
     {
-        double[] targetValues = GenerateNormalDistribution(countries.Count).OrderBy(v => v).ToArray();
+        double[] targetValues = GenerateNormalDistribution(countries.Count).Order().ToArray();
 
-        var orderedCountries = countries.OrderBy(c => c.GetValue()).ToList();
+        var orderedCountries = countries.OrderBy(c => c.GetValue()).ToArray();
 
-        for (int i = 0; i < orderedCountries.Count; i++)
+        for (int i = 0; i < orderedCountries.Length; i++)
         {
             var country = orderedCountries[i];
             double currentValue = country.GetValue();
@@ -248,21 +250,12 @@ public sealed class MapGenerator
 
     private static int ClampValue(int value, int max) => Math.Max(0, Math.Min(value, max));
 
-    private IEnumerable<double> GenerateNormalDistribution(int count)
+    private double[] GenerateNormalDistribution(int count)
     {
-        return Enumerable
-            .Range(0, count)
-            .Select(_ => NextGaussian(_random, _valueMean, _valueStdDev))
-            .OrderBy(v => v);
-    }
-
-    // TODO: 改为科学计算库
-    public static double NextGaussian(Random rand, double mean, double stdDev)
-    {
-        double u1 = 1.0 - rand.NextDouble();
-        double u2 = 1.0 - rand.NextDouble();
-        double randStdNormal = Math.Sqrt(-2.0 * Math.Log(u1)) * Math.Sin(2.0 * Math.PI * u2);
-        return mean + stdDev * randStdNormal;
+        var normal = Normal.WithMeanStdDev(_valueMean, _valueStdDev, _random);
+        double[] values = new double[count];
+        normal.Samples(values);
+        return values;
     }
 
     public static class Validator
