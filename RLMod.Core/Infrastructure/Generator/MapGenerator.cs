@@ -1,5 +1,6 @@
 ﻿using MathNet.Numerics.Distributions;
 using MathNet.Numerics.Random;
+using RLMod.Core.Extensions;
 using ZLinq;
 using ZLinq.Linq;
 
@@ -148,8 +149,7 @@ public sealed class MapGenerator
         return countries
             .AsValueEnumerable()
             .Where(c => c.GetPassableBorder().Contains(id))
-            // TODO: 改为相等
-            .Average(c => c.Type.ToString() == targetType.ToString() ? 1 : 0);
+            .Average(countryMap => countryMap.Type.EqualsForType(targetType) ? 1 : 0);
     }
 
     private int ShortestPathLengthBfs(int start, int end)
