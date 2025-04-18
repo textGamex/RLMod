@@ -1,12 +1,12 @@
 ﻿namespace RLMod.Core.Infrastructure.Generator;
 
-public struct StateProperty
+public sealed class StateProperty
 {
-    public StateType Type;
-    public int Factories;
-    public int MaxFactories;
-    public int Resources;
-    public int VictoryPoint;
+    public StateType Type { get; }
+    public int Factories { get; set; }
+    public int MaxFactories { get; }
+    public int Resources { get; set; }
+    public int VictoryPoint { get; }
 
     public StateProperty(TmpState state, StateType type, int maxFactoriesLimit, int resourcesLimit)
     {
