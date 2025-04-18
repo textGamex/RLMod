@@ -24,21 +24,20 @@ public sealed class MapGenerator
     private readonly double _valueStdDev;
 
     public MapGenerator(
-        List<TmpState> states,
+        IEnumerable<TmpState> states,
         int countriesCount = MapSettings.MaxCountry,
         int randomSeed = MapSettings.RandomSeed,
         double valueMean = 5000,
         double valueStdDev = 1000
     )
     {
-        var typeRand = new Random(MapSettings.RandomSeed);
+        _random = new MersenneTwister(randomSeed);
         foreach (var state in states)
         {
-            var type = (StateType)typeRand.Next(0, 3);
+            var type = (StateType)_random.Next(0, 3);
             _stateMap[state.Id] = new StateMap(state, type);
         }
         _countriesCount = countriesCount;
-        _random = new MersenneTwister(randomSeed);
         _valueMean = valueMean;
         _valueStdDev = valueStdDev;
         CountryMap.SetStateMaps(_stateMap);
