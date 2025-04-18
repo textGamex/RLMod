@@ -6,7 +6,6 @@ using ParadoxPower.CSharpExtensions;
 using ParadoxPower.Process;
 using RLMod.Core.Extensions;
 using RLMod.Core.Helpers;
-using RLMod.Core.Infrastructure.Parser;
 using RLMod.Core.Models.Map;
 using RLMod.Core.Services;
 using ZLinq;
@@ -38,8 +37,7 @@ public sealed partial class MainWindowViewModel(AppSettingService settingService
     {
         string stateFolder = Path.Combine(GameRootPath, "history", "states");
         var states = GetStates(stateFolder);
-        var a = tagService.GetCountryTags();
-        Log.Info("国家标签: {0}", a.Length);
+        states[0].ToScript();
     }
 
     private List<State> GetStates(string stateFolder)
