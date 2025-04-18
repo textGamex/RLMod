@@ -139,9 +139,12 @@ public sealed class MapGenerator
 
     private double CalculateDispersion(int id, List<CountryMap> countries)
     {
-        double sumDistance = countries.Where(c => c.Id != id).Sum(c => ShortestPathLengthBfs(id, c.Id));
+        int sumDistance = countries
+            .AsValueEnumerable()
+            .Where(c => c.Id != id)
+            .Sum(c => ShortestPathLengthBfs(id, c.Id));
 
-        return sumDistance / (countries.Count - 1);
+        return (double)sumDistance / (countries.Count - 1);
     }
 
     private double CalculateTypeMatch(int id, List<CountryMap> countries)
