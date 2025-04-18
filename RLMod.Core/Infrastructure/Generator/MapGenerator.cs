@@ -50,7 +50,7 @@ public sealed class MapGenerator
         if (validStates < _countriesCount)
         {
             throw new ArgumentException(
-                $"无法生成 {_countriesCount} 个国家，非海洋省份只有 {validStates} 个。" + $"请确保：(非海洋省份数量) ≥ (目标国家数量)"
+                $"无法生成 {_countriesCount} 个国家，非海洋省份只有 {validStates} 个。请确保：(非海洋省份数量) ≥ (目标国家数量)"
             );
         }
     }
@@ -58,10 +58,10 @@ public sealed class MapGenerator
     public IReadOnlyCollection<CountryMap> Divide()
     {
         var countries = SelectSeeds().Select(n => new CountryMap(n)).ToList();
-        bool changeFlag;
+        bool isChange;
         do
         {
-            changeFlag = false;
+            isChange = false;
 
             foreach (var country in countries)
             {
@@ -72,9 +72,9 @@ public sealed class MapGenerator
                 }
 
                 ExpandCountry(country, passableBorder, countries);
-                changeFlag = true;
+                isChange = true;
             }
-        } while (changeFlag);
+        } while (isChange);
 
         ApplyValueDistribution(countries);
         return countries;
