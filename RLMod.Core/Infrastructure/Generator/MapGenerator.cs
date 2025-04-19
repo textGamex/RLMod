@@ -21,7 +21,7 @@ public sealed class MapGenerator
     public static IReadOnlySet<int> OccupiedStates => _occupiedStates;
     private static readonly HashSet<int> _occupiedStates = [];
 
-    private readonly Dictionary<int, StateInfo> _stateInfos;
+    private readonly StateInfoManager _stateInfoManager;
     private readonly int _countriesCount;
     private readonly Random _random;
     private readonly double _valueMean;
@@ -37,34 +37,23 @@ public sealed class MapGenerator
         double valueStdDev = 1000
     )
     {
+        _stateInfoManager = new StateInfoManager(states);
         _random = new MersenneTwister(randomSeed);
-        _stateInfos = new Dictionary<int, StateInfo>(states.Count);
 
-        InitializeStateInfos(states);
         _countriesCount = countriesCount;
         _valueMean = valueMean;
         _valueStdDev = valueStdDev;
-        CountryMap.SetStateInfos(_stateInfos);
+        CountryMap.SetStateInfos(_stateInfoManager);
         ValidateStateCount();
-    }
-
-    private void InitializeStateInfos(IReadOnlyCollection<TmpState> states)
-    {
-        var stateTypes = _random.GetItems(Enum.GetValues<StateType>(), states.Count);
-        int i = 0;
-        foreach (var state in states)
-        {
-            _stateInfos[state.Id] = new StateInfo(state, stateTypes[i++]);
-        }
     }
 
     private void ValidateStateCount()
     {
-        int validStates = _stateInfos.Count(s => !s.Value.IsImpassable);
-        if (validStates < _countriesCount)
+        int passableStateCount = _stateInfoManager.PassableStateCount;
+        if (passableStateCount < _countriesCount)
         {
             throw new ArgumentException(
-                $"无法生成 {_countriesCount} 个国家，非海洋省份只有 {validStates} 个。请确保：(非海洋省份数量) ≥ (目标国家数量)"
+                $"无法生成 {_countriesCount} 个国家，非海洋省份只有 {passableStateCount} 个。请确保：(非海洋省份数量) ≥ (目标国家数量)"
             );
         }
     }
@@ -126,8 +115,8 @@ public sealed class MapGenerator
         int
     > GetRandomInitialStateId()
     {
-        return _stateInfos
-            .Values.AsValueEnumerable()
+        return _stateInfoManager
+            .States.AsValueEnumerable()
             .Where(s => !s.IsImpassable && !OccupiedStates.Contains(s.Id))
             .OrderBy(_ => _random.Next())
             .Take(_countriesCount)
@@ -151,7 +140,7 @@ public sealed class MapGenerator
             .Select(id => new
             {
                 Id = id,
-                Value = _stateInfos[id].GetValue(),
+                Value = _stateInfoManager.GetStateInfo(id).GetValue(),
                 Dispersion = CalculateDispersion(id, countries),
                 TypeMatch = CalculateTypeMatch(id, countries),
             })
@@ -190,7 +179,7 @@ public sealed class MapGenerator
 
     private double CalculateTypeMatch(int id, CountryMap[] countries)
     {
-        var targetType = _stateInfos[id].StateType;
+        var targetType = _stateInfoManager.GetStateInfo(id).StateType;
         return countries
             .AsValueEnumerable()
             .Where(c => c.GetPassableBorder().Contains(id))
@@ -211,21 +200,25 @@ public sealed class MapGenerator
         queue.Enqueue((start, 0));
         while (queue.Count > 0)
         {
-            var (current, distance) = queue.Dequeue();
-            if (current == end)
+            var (currentStateId, distance) = queue.Dequeue();
+            if (currentStateId == end)
             {
                 _pathCache[(start, end)] = distance;
                 return distance;
             }
-            if (!visited.Add(current))
+            if (!visited.Add(currentStateId))
             {
                 continue;
             }
 
             foreach (
-                int edge in _stateInfos[current]
+                int edge in _stateInfoManager
+                    .GetStateInfo(currentStateId)
                     .Edges.AsValueEnumerable()
-                    .Where(edge => !_stateInfos[edge].IsImpassable && !visited.Contains(edge))
+                    .Where(edgeStateId =>
+                        !_stateInfoManager.GetStateInfo(edgeStateId).IsImpassable
+                        && !visited.Contains(edgeStateId)
+                    )
             )
             {
                 queue.Enqueue((edge, distance + 1));
@@ -255,7 +248,7 @@ public sealed class MapGenerator
 
             foreach (int stateId in country.StatesId)
             {
-                var state = _stateInfos[stateId];
+                var state = _stateInfoManager.GetStateInfo(stateId);
                 if (state.IsImpassable)
                 {
                     continue;
@@ -406,15 +399,15 @@ public sealed class MapGenerator
             var countries = generator.GetRandomCountry();
             Console.WriteLine("分割完成...");
 
-            var result = Validator.Validate(countries, CountryMap.StateMaps);
+            // var result = Validator.Validate(countries, CountryMap.StateInfoManager);
 
-            Console.WriteLine($"连通性验证: {result.IsConnected}");
-            Console.WriteLine($"价值标准差: {result.ValueStdDev:F2}");
-            Console.WriteLine("国家类型分布:");
-            foreach (var kvp in result.CountryTypeDistribution)
-            {
-                Console.WriteLine($"{kvp.Key}: {kvp.Value} 个国家");
-            }
+            // Console.WriteLine($"连通性验证: {result.IsConnected}");
+            // Console.WriteLine($"价值标准差: {result.ValueStdDev:F2}");
+            // Console.WriteLine("国家类型分布:");
+            // foreach (var kvp in result.CountryTypeDistribution)
+            // {
+            //     Console.WriteLine($"{kvp.Key}: {kvp.Value} 个国家");
+            // }
         }
     }
 }

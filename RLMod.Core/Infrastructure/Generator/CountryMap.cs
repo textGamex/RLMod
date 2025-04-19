@@ -9,7 +9,7 @@ public sealed class CountryMap
 
     public IEnumerable<int> StatesId => _statesId;
 
-    public static IReadOnlyDictionary<int, StateInfo> StateMaps { get; private set; } = [];
+    public static StateInfoManager StateInfoManager { get; private set; } = null!;
 
     private readonly HashSet<int> _statesId = [];
     private readonly HashSet<int> _border = [];
@@ -20,9 +20,9 @@ public sealed class CountryMap
         AddState(initialStateId);
     }
 
-    public static void SetStateInfos(IReadOnlyDictionary<int, StateInfo> stateMaps)
+    public static void SetStateInfos(StateInfoManager stateInfoManager)
     {
-        StateMaps = stateMaps;
+        StateInfoManager = stateInfoManager;
     }
 
     /// <summary>
@@ -31,12 +31,12 @@ public sealed class CountryMap
     /// <returns>国家的价值</returns>
     public double GetValue()
     {
-        return _statesId.Sum(id => StateMaps[id].GetValue());
+        return _statesId.Sum(id => StateInfoManager.GetStateInfo(id).GetValue());
     }
 
     public IReadOnlyCollection<int> GetPassableBorder()
     {
-        return _border.Where(n => !StateMaps[n].IsImpassable).ToArray();
+        return _border.Where(id => !StateInfoManager.GetStateInfo(id).IsImpassable).ToArray();
     }
 
     public int StateCount => _statesId.Count;
@@ -50,11 +50,12 @@ public sealed class CountryMap
         UpdateCountryType();
     }
 
-    private void UpdateBorders(int addedState)
+    private void UpdateBorders(int addedStateId)
     {
         Console.WriteLine($"更新{Id}的接壤省份", Id);
         foreach (
-            int edge in StateMaps[addedState]
+            int edge in StateInfoManager
+                .GetStateInfo(addedStateId)
                 .Edges.AsValueEnumerable()
                 .Where(edge => !_statesId.Contains(edge) && !MapGenerator.OccupiedStates.Contains(edge))
         )
@@ -62,7 +63,7 @@ public sealed class CountryMap
             _border.Add(edge);
         }
 
-        _border.Remove(addedState);
+        _border.Remove(addedStateId);
         foreach (int edge in _border.Where(e => MapGenerator.OccupiedStates.Contains(e)))
         {
             _border.Remove(edge);
@@ -72,8 +73,8 @@ public sealed class CountryMap
     private void UpdateCountryType()
     {
         var typeGroups = _statesId
-            .Select(s => StateMaps[s].StateType)
-            .GroupBy(t => t)
+            .Select(stateId => StateInfoManager.GetStateInfo(stateId).StateType)
+            .GroupBy(type => type)
             .ToDictionary(g => g.Key, g => g.Count());
 
         var stateType = typeGroups.OrderByDescending(g => g.Value).First().Key;
