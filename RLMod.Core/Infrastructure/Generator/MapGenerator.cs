@@ -1,5 +1,6 @@
 ﻿using MathNet.Numerics.Distributions;
 using MathNet.Numerics.Random;
+using NLog;
 using RLMod.Core.Extensions;
 using ZLinq;
 using ZLinq.Linq;
@@ -25,6 +26,8 @@ public sealed class MapGenerator
     private readonly Random _random;
     private readonly double _valueMean;
     private readonly double _valueStdDev;
+
+    private static readonly Logger Log = LogManager.GetCurrentClassLogger();
 
     public MapGenerator(
         IReadOnlyCollection<TmpState> states,
@@ -66,11 +69,14 @@ public sealed class MapGenerator
         }
     }
 
-    public IReadOnlyCollection<CountryMap> Divide()
+    public IReadOnlyCollection<CountryMap> GetRandomCountry()
     {
-        Console.WriteLine("选择初始位置...");
-        var countries = SelectSeeds().Select(n => new CountryMap(n)).ToArray();
-        Console.WriteLine("初始位置分配完毕...");
+        Log.Info("选择初始位置...");
+        var countries = GetRandomInitialStateId()
+            .Select(initialStateId => new CountryMap(initialStateId))
+            .ToArray();
+        Log.Info("初始位置分配完毕...");
+
         bool isChange;
         do
         {
@@ -78,19 +84,20 @@ public sealed class MapGenerator
 
             foreach (var country in countries)
             {
-                Console.WriteLine($"尝试扩展...{country.Id}", country.Id);
+                Log.Debug("尝试扩展...{Id}", country.Id);
                 var passableBorder = country.GetPassableBorder();
                 if (passableBorder.Count <= 0)
                 {
-                    Console.WriteLine("无法扩展");
+                    Log.Debug("无法扩展");
                     continue;
                 }
 
                 isChange = ExpandCountry(country, passableBorder, countries);
             }
         } while (isChange);
-        Console.WriteLine("扩展完毕");
-        Console.WriteLine("正则验证");
+
+        Log.Info("扩展完毕");
+        Log.Info("正则验证");
         ApplyValueDistribution(countries);
         return countries;
     }
@@ -117,7 +124,7 @@ public sealed class MapGenerator
     private ValueEnumerable<
         Select<OrderBySkipTake<Where<FromEnumerable<StateInfo>, StateInfo>, StateInfo, int>, StateInfo, int>,
         int
-    > SelectSeeds()
+    > GetRandomInitialStateId()
     {
         return _stateInfos
             .Values.AsValueEnumerable()
@@ -396,7 +403,7 @@ public sealed class MapGenerator
                 valueStdDev: 1000
             );
             Console.WriteLine("生成地图...");
-            var countries = generator.Divide();
+            var countries = generator.GetRandomCountry();
             Console.WriteLine("分割完成...");
 
             var result = Validator.Validate(countries, CountryMap.StateMaps);

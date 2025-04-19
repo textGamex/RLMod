@@ -9,31 +9,35 @@ public sealed class CountryMap
 
     public IEnumerable<int> StatesId => _statesId;
 
-    public static void SetStateInfos(IReadOnlyDictionary<int, StateInfo> stateMaps)
-    {
-        StateMaps = stateMaps;
-    }
-
     public static IReadOnlyDictionary<int, StateInfo> StateMaps { get; private set; } = [];
 
     private readonly HashSet<int> _statesId = [];
     private readonly HashSet<int> _border = [];
 
-    public CountryMap(int seed)
+    public CountryMap(int initialStateId)
     {
-        Id = seed;
-        AddState(seed);
+        Id = initialStateId;
+        AddState(initialStateId);
+    }
+
+    public static void SetStateInfos(IReadOnlyDictionary<int, StateInfo> stateMaps)
+    {
+        StateMaps = stateMaps;
     }
 
     /// <summary>
     /// 计算获取国家的价值。
     /// </summary>
     /// <returns>国家的价值</returns>
+    public double GetValue()
+    {
+        return _statesId.Sum(id => StateMaps[id].GetValue());
+    }
 
-    public double GetValue() => _statesId.Sum(id => StateMaps[id].GetValue());
-
-    public IReadOnlyCollection<int> GetPassableBorder() =>
-        _border.Where(n => !StateMaps[n].IsImpassable).ToArray();
+    public IReadOnlyCollection<int> GetPassableBorder()
+    {
+        return _border.Where(n => !StateMaps[n].IsImpassable).ToArray();
+    }
 
     public int StateCount => _statesId.Count;
 
@@ -52,9 +56,7 @@ public sealed class CountryMap
         foreach (
             int edge in StateMaps[addedState]
                 .Edges.AsValueEnumerable()
-                .Where(edge =>
-                    !_statesId.Contains(edge) && !MapGenerator.OccupiedStates.Contains(edge)
-                )
+                .Where(edge => !_statesId.Contains(edge) && !MapGenerator.OccupiedStates.Contains(edge))
         )
         {
             _border.Add(edge);
