@@ -53,7 +53,7 @@ public sealed class CountryMap
             int edge in StateMaps[addedState]
                 .Edges.AsValueEnumerable()
                 .Where(edge =>
-                    !_statesId.Contains(edge) && !MapGenerator.GetOccupiedStates().Contains(edge)
+                    !_statesId.Contains(edge) && !MapGenerator.OccupiedStates.Contains(edge)
                 )
         )
         {
@@ -61,7 +61,7 @@ public sealed class CountryMap
         }
 
         _border.Remove(addedState);
-        foreach (var edge in _border.Where(e => MapGenerator.GetOccupiedStates().Contains(e)))
+        foreach (var edge in _border.Where(e => MapGenerator.OccupiedStates.Contains(e)))
         {
             _border.Remove(edge);
         }

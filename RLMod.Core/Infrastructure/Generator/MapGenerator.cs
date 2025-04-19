@@ -17,14 +17,14 @@ public class TmpState
 
 public sealed class MapGenerator
 {
+    public static IReadOnlySet<int> OccupiedStates => _occupiedStates;
+    private static readonly HashSet<int> _occupiedStates = [];
+
     private readonly Dictionary<int, StateMap> _stateMap = [];
-    private static HashSet<int> _occupiedStates = [];
     private readonly int _countriesCount;
     private readonly Random _random;
     private readonly double _valueMean;
     private readonly double _valueStdDev;
-
-    public static HashSet<int> GetOccupiedStates() => _occupiedStates;
 
     public MapGenerator(
         IEnumerable<TmpState> states,
@@ -107,17 +107,13 @@ public sealed class MapGenerator
     }
 
     private ValueEnumerable<
-        Select<
-            OrderBySkipTake<Where<FromEnumerable<StateMap>, StateMap>, StateMap, int>,
-            StateMap,
-            int
-        >,
+        Select<OrderBySkipTake<Where<FromEnumerable<StateMap>, StateMap>, StateMap, int>, StateMap, int>,
         int
     > SelectSeeds()
     {
         return _stateMap
             .Values.AsValueEnumerable()
-            .Where(s => !s.IsImpassable && !_occupiedStates.Contains(s.Id))
+            .Where(s => !s.IsImpassable && !OccupiedStates.Contains(s.Id))
             .OrderBy(_ => _random.Next())
             .Take(_countriesCount)
             .Select(s =>
@@ -129,7 +125,7 @@ public sealed class MapGenerator
 
     private int SelectState(IReadOnlyCollection<int> candidates, List<CountryMap> countries)
     {
-        var validCandidates = candidates.Where(id => !_occupiedStates.Contains(id)).ToList();
+        var validCandidates = candidates.Where(id => !OccupiedStates.Contains(id)).ToList();
         if (validCandidates.Count == 0)
         {
             return -1;
