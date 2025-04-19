@@ -18,7 +18,7 @@ public sealed class StateProperty
 
     public StateProperty(TmpState state, StateType type, int maxFactoriesLimit, int resourcesLimit)
     {
-        _random = new MersenneTwister();
+        _random = new MersenneTwister(false);
         Type = type;
         VictoryPoint = state.VictoryPoint;
 
