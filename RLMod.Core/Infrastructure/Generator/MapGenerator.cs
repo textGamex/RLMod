@@ -194,7 +194,7 @@ public sealed class MapGenerator
 
     private int ShortestPathLengthBfs(int start, int end)
     {
-        if (_pathCache.TryGetValue((start, end), out var cached))
+        if (_pathCache.TryGetValue((start, end), out int cached))
         {
             return cached;
         }
@@ -266,8 +266,8 @@ public sealed class MapGenerator
         const double resourceResourceMinRatio = 0.8;
 
         var type = state.StateType;
-        var originalFactories = state.Factories;
-        var originalResources = state.Resources;
+        int originalFactories = state.Factories;
+        int originalResources = state.Resources;
 
         if (type == StateType.Industrial)
         {

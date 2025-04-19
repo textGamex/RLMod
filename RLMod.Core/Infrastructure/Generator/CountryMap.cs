@@ -61,7 +61,7 @@ public sealed class CountryMap
         }
 
         _border.Remove(addedState);
-        foreach (var edge in _border.Where(e => MapGenerator.OccupiedStates.Contains(e)))
+        foreach (int edge in _border.Where(e => MapGenerator.OccupiedStates.Contains(e)))
         {
             _border.Remove(edge);
         }
