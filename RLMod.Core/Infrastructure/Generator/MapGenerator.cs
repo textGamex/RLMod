@@ -27,7 +27,7 @@ public sealed class MapGenerator
     private readonly double _valueStdDev;
 
     public MapGenerator(
-        IEnumerable<TmpState> states,
+        IReadOnlyCollection<TmpState> states,
         int countriesCount = MapSettings.MaxCountry,
         int randomSeed = MapSettings.RandomSeed,
         double valueMean = 5000,
@@ -35,16 +35,23 @@ public sealed class MapGenerator
     )
     {
         _random = new MersenneTwister(randomSeed);
-        foreach (var state in states)
-        {
-            var type = (StateType)_random.Next(0, 3);
-            _stateMap[state.Id] = new StateMap(state, type);
-        }
+
+        InitializeStateMaps(states);
         _countriesCount = countriesCount;
         _valueMean = valueMean;
         _valueStdDev = valueStdDev;
         CountryMap.SetStateMaps(_stateMap);
         ValidateStateCount();
+    }
+
+    private void InitializeStateMaps(IReadOnlyCollection<TmpState> states)
+    {
+        var stateTypes = _random.GetItems(Enum.GetValues<StateType>(), states.Count);
+        int i = 0;
+        foreach (var state in states)
+        {
+            _stateMap[state.Id] = new StateMap(state, stateTypes[i++]);
+        }
     }
 
     private void ValidateStateCount()
