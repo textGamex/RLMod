@@ -6,16 +6,19 @@ using ParadoxPower.CSharpExtensions;
 using ParadoxPower.Process;
 using RLMod.Core.Extensions;
 using RLMod.Core.Helpers;
-using RLMod.Core.Infrastructure.Parser;
 using RLMod.Core.Models.Map;
 using RLMod.Core.Services;
 using ZLinq;
 
 namespace RLMod.Core;
 
-public sealed partial class MainWindowViewModel(AppSettingService settingService, CountryTagService tagService) : ObservableObject
+public sealed partial class MainWindowViewModel(
+    AppSettingService settingService,
+    StateCategoryService stateCategoryService
+) : ObservableObject
 {
     private static readonly Logger Log = LogManager.GetCurrentClassLogger();
+
     [ObservableProperty]
     private string _gameRootPath = settingService.GameRootFolderPath;
 
@@ -37,9 +40,8 @@ public sealed partial class MainWindowViewModel(AppSettingService settingService
     private void GenerateRandomizerMap()
     {
         string stateFolder = Path.Combine(GameRootPath, "history", "states");
-        var states = GetStates(stateFolder);
-        var a = tagService.GetCountryTags();
-        Log.Info("国家标签: {0}", a.Length);
+        // var states = GetStates(stateFolder);
+        Log.Info("{@A}", stateCategoryService.StateCategories);
     }
 
     private List<State> GetStates(string stateFolder)
