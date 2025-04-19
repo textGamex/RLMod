@@ -9,12 +9,12 @@ public sealed class CountryMap
 
     public IEnumerable<int> StatesId => _statesId;
 
-    public static void SetStateMaps(Dictionary<int, StateMap> stateMaps)
+    public static void SetStateInfos(IReadOnlyDictionary<int, StateInfo> stateMaps)
     {
         StateMaps = stateMaps;
     }
 
-    public static Dictionary<int, StateMap> StateMaps { get; private set; } = [];
+    public static IReadOnlyDictionary<int, StateInfo> StateMaps { get; private set; } = [];
 
     private readonly HashSet<int> _statesId = [];
     private readonly HashSet<int> _border = [];

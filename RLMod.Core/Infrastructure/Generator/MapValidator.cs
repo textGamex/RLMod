@@ -13,7 +13,7 @@ public static class Validator
 
     public static ValidatorResult Validate(
         IReadOnlyCollection<CountryMap> countries,
-        Dictionary<int, StateMap> stateMap
+        IReadOnlyDictionary<int, StateInfo> stateMap
     )
     {
         var result = new ValidatorResult
@@ -27,7 +27,7 @@ public static class Validator
 
     private static bool CheckConnectivity(
         IEnumerable<CountryMap> countries,
-        Dictionary<int, StateMap> stateMap
+        IReadOnlyDictionary<int, StateInfo> stateMap
     )
     {
         foreach (var country in countries)

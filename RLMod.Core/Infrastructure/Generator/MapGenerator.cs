@@ -20,7 +20,7 @@ public sealed class MapGenerator
     public static IReadOnlySet<int> OccupiedStates => _occupiedStates;
     private static readonly HashSet<int> _occupiedStates = [];
 
-    private readonly Dictionary<int, StateMap> _stateMap;
+    private readonly Dictionary<int, StateInfo> _stateInfos;
     private readonly int _countriesCount;
     private readonly Random _random;
     private readonly double _valueMean;
@@ -35,29 +35,29 @@ public sealed class MapGenerator
     )
     {
         _random = new MersenneTwister(randomSeed);
-        _stateMap = new Dictionary<int, StateMap>(states.Count);
+        _stateInfos = new Dictionary<int, StateInfo>(states.Count);
 
-        InitializeStateMaps(states);
+        InitializeStateInfos(states);
         _countriesCount = countriesCount;
         _valueMean = valueMean;
         _valueStdDev = valueStdDev;
-        CountryMap.SetStateMaps(_stateMap);
+        CountryMap.SetStateInfos(_stateInfos);
         ValidateStateCount();
     }
 
-    private void InitializeStateMaps(IReadOnlyCollection<TmpState> states)
+    private void InitializeStateInfos(IReadOnlyCollection<TmpState> states)
     {
         var stateTypes = _random.GetItems(Enum.GetValues<StateType>(), states.Count);
         int i = 0;
         foreach (var state in states)
         {
-            _stateMap[state.Id] = new StateMap(state, stateTypes[i++]);
+            _stateInfos[state.Id] = new StateInfo(state, stateTypes[i++]);
         }
     }
 
     private void ValidateStateCount()
     {
-        int validStates = _stateMap.Count(s => !s.Value.IsImpassable);
+        int validStates = _stateInfos.Count(s => !s.Value.IsImpassable);
         if (validStates < _countriesCount)
         {
             throw new ArgumentException(
@@ -115,11 +115,11 @@ public sealed class MapGenerator
     }
 
     private ValueEnumerable<
-        Select<OrderBySkipTake<Where<FromEnumerable<StateMap>, StateMap>, StateMap, int>, StateMap, int>,
+        Select<OrderBySkipTake<Where<FromEnumerable<StateInfo>, StateInfo>, StateInfo, int>, StateInfo, int>,
         int
     > SelectSeeds()
     {
-        return _stateMap
+        return _stateInfos
             .Values.AsValueEnumerable()
             .Where(s => !s.IsImpassable && !OccupiedStates.Contains(s.Id))
             .OrderBy(_ => _random.Next())
@@ -144,7 +144,7 @@ public sealed class MapGenerator
             .Select(id => new
             {
                 Id = id,
-                Value = _stateMap[id].GetValue(),
+                Value = _stateInfos[id].GetValue(),
                 Dispersion = CalculateDispersion(id, countries),
                 TypeMatch = CalculateTypeMatch(id, countries),
             })
@@ -183,7 +183,7 @@ public sealed class MapGenerator
 
     private double CalculateTypeMatch(int id, CountryMap[] countries)
     {
-        var targetType = _stateMap[id].StateType;
+        var targetType = _stateInfos[id].StateType;
         return countries
             .AsValueEnumerable()
             .Where(c => c.GetPassableBorder().Contains(id))
@@ -216,9 +216,9 @@ public sealed class MapGenerator
             }
 
             foreach (
-                int edge in _stateMap[current]
+                int edge in _stateInfos[current]
                     .Edges.AsValueEnumerable()
-                    .Where(edge => !_stateMap[edge].IsImpassable && !visited.Contains(edge))
+                    .Where(edge => !_stateInfos[edge].IsImpassable && !visited.Contains(edge))
             )
             {
                 queue.Enqueue((edge, distance + 1));
@@ -248,7 +248,7 @@ public sealed class MapGenerator
 
             foreach (int stateId in country.StatesId)
             {
-                var state = _stateMap[stateId];
+                var state = _stateInfos[stateId];
                 if (state.IsImpassable)
                 {
                     continue;
@@ -259,7 +259,7 @@ public sealed class MapGenerator
         }
     }
 
-    private void AdjustStateProperties(StateMap state, double ratio)
+    private void AdjustStateProperties(StateInfo state, double ratio)
     {
         const double industrialFactoryMinRatio = 0.8;
         const double industrialResourceMaxRatio = 1.0;

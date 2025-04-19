@@ -1,6 +1,6 @@
 ﻿namespace RLMod.Core.Infrastructure.Generator;
 
-public sealed class StateMap(TmpState state, StateType type)
+public sealed class StateInfo(TmpState state, StateType type)
 {
     public int Factories
     {
@@ -34,7 +34,7 @@ public sealed class StateMap(TmpState state, StateType type)
 
     public StateProperty GetProperties() => _stateProperties;
 
-    private StateProperty _stateProperties = new(
+    private readonly StateProperty _stateProperties = new(
         state,
         type,
         StatePropertyLimit.MaxMaxFactories,
