@@ -20,7 +20,7 @@ public sealed class MapGenerator
     public static IReadOnlySet<int> OccupiedStates => _occupiedStates;
     private static readonly HashSet<int> _occupiedStates = [];
 
-    private readonly Dictionary<int, StateMap> _stateMap = [];
+    private readonly Dictionary<int, StateMap> _stateMap;
     private readonly int _countriesCount;
     private readonly Random _random;
     private readonly double _valueMean;
@@ -35,6 +35,7 @@ public sealed class MapGenerator
     )
     {
         _random = new MersenneTwister(randomSeed);
+        _stateMap = new Dictionary<int, StateMap>(states.Count);
 
         InitializeStateMaps(states);
         _countriesCount = countriesCount;
