@@ -26,6 +26,7 @@ public sealed class MapGenerator
     private readonly Random _random;
     private readonly double _valueMean;
     private readonly double _valueStdDev;
+    private readonly Dictionary<(int, int), int> _pathCache = new();
 
     private static readonly Logger Log = LogManager.GetCurrentClassLogger();
 
@@ -185,8 +186,6 @@ public sealed class MapGenerator
             .Where(c => c.GetPassableBorder().Contains(id))
             .Average(countryMap => countryMap.Type.EqualsForType(targetType) ? 1 : 0);
     }
-
-    private readonly Dictionary<(int, int), int> _pathCache = new();
 
     private int ShortestPathLengthBfs(int start, int end)
     {

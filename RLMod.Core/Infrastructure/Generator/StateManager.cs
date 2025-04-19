@@ -5,6 +5,8 @@ namespace RLMod.Core.Infrastructure.Generator;
 public sealed class StateInfoManager
 {
     public IEnumerable<StateInfo> States => _stateInfos.Values;
+    public int PassableStateCount => _stateInfos.Values.Count(stateInfo => !stateInfo.IsImpassable);
+
     private readonly FrozenDictionary<int, StateInfo> _stateInfos;
 
     public StateInfoManager(IReadOnlyCollection<TmpState> states)
@@ -25,6 +27,4 @@ public sealed class StateInfoManager
     {
         return _stateInfos[stateId];
     }
-
-    public int PassableStateCount => _stateInfos.Values.Count(stateInfo => !stateInfo.IsImpassable);
 }
