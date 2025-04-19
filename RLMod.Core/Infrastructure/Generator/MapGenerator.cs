@@ -98,16 +98,16 @@ public sealed class MapGenerator
         CountryMap[] countries
     )
     {
-        int selected = SelectState(candidates, countries);
-        if (selected == -1)
+        int stateId = GetIdOfBestState(candidates, countries);
+        if (stateId == -1)
         {
-            Console.WriteLine("无法扩展");
+            Log.Debug("无法扩展");
             return false;
         }
 
-        Console.WriteLine($"向{selected}扩展", selected);
-        country.AddState(selected);
-        _occupiedStates.Add(selected);
+        Log.Debug("向{StateId}扩展", stateId);
+        country.AddState(stateId);
+        _occupiedStates.Add(stateId);
         return true;
     }
 
@@ -128,7 +128,7 @@ public sealed class MapGenerator
             });
     }
 
-    private int SelectState(IReadOnlyCollection<int> candidates, CountryMap[] countries)
+    private int GetIdOfBestState(IReadOnlyCollection<int> candidates, CountryMap[] countries)
     {
         var validCandidates = candidates.Where(id => !OccupiedStates.Contains(id)).ToList();
         if (validCandidates.Count == 0)
