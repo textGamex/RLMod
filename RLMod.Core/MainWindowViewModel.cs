@@ -12,9 +12,13 @@ using ZLinq;
 
 namespace RLMod.Core;
 
-public sealed partial class MainWindowViewModel(AppSettingService settingService, CountryTagService tagService) : ObservableObject
+public sealed partial class MainWindowViewModel(
+    AppSettingService settingService,
+    StateCategoryService stateCategoryService
+) : ObservableObject
 {
     private static readonly Logger Log = LogManager.GetCurrentClassLogger();
+
     [ObservableProperty]
     private string _gameRootPath = settingService.GameRootFolderPath;
 
@@ -36,8 +40,8 @@ public sealed partial class MainWindowViewModel(AppSettingService settingService
     private void GenerateRandomizerMap()
     {
         string stateFolder = Path.Combine(GameRootPath, "history", "states");
-        var states = GetStates(stateFolder);
-        states[0].ToScript();
+        // var states = GetStates(stateFolder);
+        Log.Info("{@A}", stateCategoryService.StateCategories);
     }
 
     private List<State> GetStates(string stateFolder)

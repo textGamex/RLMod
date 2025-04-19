@@ -1,4 +1,8 @@
-﻿namespace RLMod.Core.Infrastructure.Generator;
+﻿using MathNet.Numerics.Random;
+using Microsoft.Extensions.DependencyInjection;
+using RLMod.Core.Services;
+
+namespace RLMod.Core.Infrastructure.Generator;
 
 public sealed class StateProperty
 {
@@ -7,48 +11,34 @@ public sealed class StateProperty
     public int MaxFactories { get; }
     public int Resources { get; set; }
     public int VictoryPoint { get; }
-    public StateCategory Category;
 
-    private StateCategory RandomCategories(Random rand, int min, int max)
-    {
-        var categories = new List<StateCategory>();
-        for (var i = min; i <= max; i++)
-        {
-            if (Enum.IsDefined(typeof(StateCategory), i))
-                categories.Add((StateCategory)i);
-        }
-
-        var categoriesArray = categories.ToArray();
-        rand.Shuffle(categoriesArray);
-        categories = new List<StateCategory>(categoriesArray);
-        return categories.First();
-    }
+    private readonly Random _random;
+    private static readonly StateCategoryService StateCategoryService =
+        App.Current.Services.GetRequiredService<StateCategoryService>();
 
     public StateProperty(TmpState state, StateType type, int maxFactoriesLimit, int resourcesLimit)
     {
-        var random = Random.Shared;
+        _random = new MersenneTwister();
         Type = type;
         VictoryPoint = state.VictoryPoint;
+
         switch (Type)
         {
             case StateType.Industrial:
-                MaxFactories = (int)RandomCategories(
-                    random,
+                MaxFactories = GetRandomBuildingSlots(
                     (int)(0.70 * maxFactoriesLimit),
                     (int)(1.0 * maxFactoriesLimit)
                 );
                 break;
             case StateType.Resource:
-                MaxFactories = (int)RandomCategories(
-                    random,
+                MaxFactories = GetRandomBuildingSlots(
                     (int)(0.1 * maxFactoriesLimit),
                     (int)(0.3 * maxFactoriesLimit)
                 );
                 break;
             case StateType.Balanced:
             default:
-                MaxFactories = (int)RandomCategories(
-                    random,
+                MaxFactories = GetRandomBuildingSlots(
                     (int)(0.3 * maxFactoriesLimit),
                     (int)(0.7 * maxFactoriesLimit)
                 );
@@ -57,60 +47,68 @@ public sealed class StateProperty
         switch (type)
         {
             case StateType.Industrial:
-                GenerateIndustrialProperties(random, MaxFactories, resourcesLimit);
+                GenerateIndustrialProperties(MaxFactories, resourcesLimit);
                 break;
             case StateType.Resource:
-                GenerateResourceProperties(random, MaxFactories, resourcesLimit);
+                GenerateResourceProperties(MaxFactories, resourcesLimit);
                 break;
             case StateType.Balanced:
             default:
-                GenerateBalancedProperties(random, MaxFactories, resourcesLimit);
+                GenerateBalancedProperties(MaxFactories, resourcesLimit);
                 break;
         }
     }
 
-    private void GenerateIndustrialProperties(Random rand, int maxFactories, int maxResources)
+    private int GetRandomBuildingSlots(int minSlots, int maxSlots)
     {
-        Factories = rand.Next((int)(maxFactories * 0.5), (int)(maxFactories * 0.7));
+        var slots = new List<int>(8);
+        foreach (var stateCategory in StateCategoryService.StateCategories)
+        {
+            if (stateCategory.Slots >= minSlots && stateCategory.Slots <= maxSlots)
+            {
+                slots.Add(stateCategory.Slots);
+            }
+        }
 
-        var resourceMax = rand.Next((int)(Factories * 10), (int)(maxResources * 0.3));
-        Resources = rand.Next(0, resourceMax + 1);
+        return slots[_random.Next(0, slots.Count)];
     }
 
-    private void GenerateResourceProperties(Random rand, int maxFactories, int maxResources)
+    private void GenerateIndustrialProperties(int maxFactories, int maxResources)
     {
-        Resources = rand.Next((int)(maxResources * 0.7), maxResources + 1);
+        Factories = _random.Next((int)(maxFactories * 0.5), (int)(maxFactories * 0.7));
 
-        var factoryMax = Math.Min((int)(Resources * 0.005), (int)(maxFactories * 0.7));
-        Factories = rand.Next(0, factoryMax + 1);
+        int resourceMax = _random.Next(Factories * 10, (int)(maxResources * 0.3));
+        Resources = _random.Next(0, resourceMax + 1);
     }
 
-    private void GenerateBalancedProperties(Random rand, int maxFactories, int maxResources)
+    private void GenerateResourceProperties(int maxFactories, int maxResources)
     {
-        Factories = rand.Next((int)(maxFactories * 0.3), (int)(maxFactories * 0.7) + 1);
-        Resources = rand.Next((int)(maxResources * 0.3), (int)(maxResources * 0.7) + 1);
+        Resources = _random.Next((int)(maxResources * 0.7), maxResources + 1);
 
-        var resourceStandard = Factories * 50.0;
+        int factoryMax = Math.Min((int)(Resources * 0.005), (int)(maxFactories * 0.7));
+        Factories = _random.Next(0, factoryMax + 1);
+    }
+
+    private void GenerateBalancedProperties(int maxFactories, int maxResources)
+    {
+        Factories = _random.Next((int)(maxFactories * 0.3), (int)(maxFactories * 0.7) + 1);
+        Resources = _random.Next((int)(maxResources * 0.3), (int)(maxResources * 0.7) + 1);
+
+        double resourceStandard = Factories * 50.0;
         if (Math.Abs(Resources - resourceStandard) > 50)
         {
-            Resources = (int)(resourceStandard + rand.Next(-25, 26));
+            Resources = (int)(resourceStandard + _random.Next(-25, 26));
             Resources = Math.Max(0, Math.Min(maxResources, Resources));
         }
     }
 
     public double Value =>
-        (double)Factories
-            / StatePropertyLimit.MaxMaxFactories
-            * 100
-            * StatePropertyLimit.FactoriesWeight
+        (double)Factories / StatePropertyLimit.MaxMaxFactories * 100 * StatePropertyLimit.FactoriesWeight
         + (double)MaxFactories
             / StatePropertyLimit.MaxMaxFactories
             * 100
             * StatePropertyLimit.MaxFactoriesWeight
-        + (double)Resources
-            / StatePropertyLimit.MaxResources
-            * 100
-            * StatePropertyLimit.ResourcesWeight
+        + (double)Resources / StatePropertyLimit.MaxResources * 100 * StatePropertyLimit.ResourcesWeight
         + (double)VictoryPoint
             / StatePropertyLimit.MaxVictoryPoint
             * 100

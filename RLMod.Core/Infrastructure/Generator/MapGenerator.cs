@@ -131,7 +131,10 @@ public sealed class MapGenerator
     {
         var validCandidates = candidates.Where(id => !_occupiedStates.Contains(id)).ToList();
         if (validCandidates.Count == 0)
+        {
             return -1;
+        }
+
         var scores = candidates
             .AsValueEnumerable()
             .Select(id => new
@@ -188,7 +191,10 @@ public sealed class MapGenerator
     private int ShortestPathLengthBfs(int start, int end)
     {
         if (_pathCache.TryGetValue((start, end), out var cached))
+        {
             return cached;
+        }
+
         var visited = new HashSet<int>();
         var queue = new Queue<(int, int)>();
         queue.Enqueue((start, 0));
