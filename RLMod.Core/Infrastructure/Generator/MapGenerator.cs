@@ -69,7 +69,7 @@ public sealed class MapGenerator
     public IReadOnlyCollection<CountryMap> Divide()
     {
         Console.WriteLine("选择初始位置...");
-        var countries = SelectSeeds().Select(n => new CountryMap(n)).ToList();
+        var countries = SelectSeeds().Select(n => new CountryMap(n)).ToArray();
         Console.WriteLine("初始位置分配完毕...");
         bool isChange;
         do
@@ -98,7 +98,7 @@ public sealed class MapGenerator
     private bool ExpandCountry(
         CountryMap country,
         IReadOnlyCollection<int> candidates,
-        List<CountryMap> countries
+        CountryMap[] countries
     )
     {
         int selected = SelectState(candidates, countries);
@@ -131,7 +131,7 @@ public sealed class MapGenerator
             });
     }
 
-    private int SelectState(IReadOnlyCollection<int> candidates, List<CountryMap> countries)
+    private int SelectState(IReadOnlyCollection<int> candidates, CountryMap[] countries)
     {
         var validCandidates = candidates.Where(id => !OccupiedStates.Contains(id)).ToList();
         if (validCandidates.Count == 0)
@@ -171,17 +171,17 @@ public sealed class MapGenerator
             .Id;
     }
 
-    private double CalculateDispersion(int id, List<CountryMap> countries)
+    private double CalculateDispersion(int id, CountryMap[] countries)
     {
         int sumDistance = countries
             .AsValueEnumerable()
             .Where(c => c.Id != id)
             .Sum(c => ShortestPathLengthBfs(id, c.Id));
 
-        return (double)sumDistance / (countries.Count - 1);
+        return (double)sumDistance / (countries.Length - 1);
     }
 
-    private double CalculateTypeMatch(int id, List<CountryMap> countries)
+    private double CalculateTypeMatch(int id, CountryMap[] countries)
     {
         var targetType = _stateMap[id].StateType;
         return countries
