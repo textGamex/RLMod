@@ -32,6 +32,12 @@ public sealed class StateMap(TmpState state, StateType type)
 
     public StateType StateType => _stateProperties.Type;
 
-    private StateProperty _stateProperties =
-        new(state, type, StatePropertyLimit.MaxMaxFactories, StatePropertyLimit.MaxResources);
+    public StateProperty GetProperties() => _stateProperties;
+
+    private StateProperty _stateProperties = new(
+        state,
+        type,
+        StatePropertyLimit.MaxMaxFactories,
+        StatePropertyLimit.MaxResources
+    );
 }

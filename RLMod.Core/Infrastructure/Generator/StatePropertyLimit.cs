@@ -2,7 +2,7 @@
 
 public static class StatePropertyLimit
 {
-    public const int MaxMaxFactories = 25;
+    public const int MaxMaxFactories = 12;
     public const int MaxResources = 600;
     public const int MaxVictoryPoint = 50;
     public const double FactoriesWeight = 0.4;

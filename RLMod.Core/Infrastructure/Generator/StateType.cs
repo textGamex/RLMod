@@ -4,5 +4,6 @@ public enum StateType : byte
 {
     Industrial,
     Resource,
-    Balanced
+    Balanced,
 }
+

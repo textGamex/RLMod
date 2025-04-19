@@ -18,10 +18,13 @@ public class TmpState
 public sealed class MapGenerator
 {
     private readonly Dictionary<int, StateMap> _stateMap = [];
+    private static HashSet<int> _occupiedStates = [];
     private readonly int _countriesCount;
     private readonly Random _random;
     private readonly double _valueMean;
     private readonly double _valueStdDev;
+
+    public static HashSet<int> GetOccupiedStates() => _occupiedStates;
 
     public MapGenerator(
         IEnumerable<TmpState> states,
@@ -57,7 +60,9 @@ public sealed class MapGenerator
 
     public IReadOnlyCollection<CountryMap> Divide()
     {
+        Console.WriteLine("选择初始位置...");
         var countries = SelectSeeds().Select(n => new CountryMap(n)).ToList();
+        Console.WriteLine("初始位置分配完毕...");
         bool isChange;
         do
         {
@@ -65,46 +70,68 @@ public sealed class MapGenerator
 
             foreach (var country in countries)
             {
+                Console.WriteLine($"尝试扩展...{country.Id}", country.Id);
                 var passableBorder = country.GetPassableBorder();
                 if (passableBorder.Count <= 0)
                 {
+                    Console.WriteLine("无法扩展");
                     continue;
                 }
 
-                ExpandCountry(country, passableBorder, countries);
-                isChange = true;
+                isChange = ExpandCountry(country, passableBorder, countries);
             }
         } while (isChange);
-
+        Console.WriteLine("扩展完毕");
+        Console.WriteLine("正则验证");
         ApplyValueDistribution(countries);
         return countries;
     }
 
-    private void ExpandCountry(
+    private bool ExpandCountry(
         CountryMap country,
         IReadOnlyCollection<int> candidates,
         List<CountryMap> countries
     )
     {
         int selected = SelectState(candidates, countries);
+        if (selected == -1)
+        {
+            Console.WriteLine("无法扩展");
+            return false;
+        }
+
+        Console.WriteLine($"向{selected}扩展", selected);
         country.AddState(selected);
+        _occupiedStates.Add(selected);
+        return true;
     }
 
     private ValueEnumerable<
-        Select<OrderBySkipTake<Where<FromEnumerable<StateMap>, StateMap>, StateMap, int>, StateMap, int>,
+        Select<
+            OrderBySkipTake<Where<FromEnumerable<StateMap>, StateMap>, StateMap, int>,
+            StateMap,
+            int
+        >,
         int
     > SelectSeeds()
     {
         return _stateMap
             .Values.AsValueEnumerable()
-            .Where(s => !s.IsImpassable)
+            .Where(s => !s.IsImpassable && !_occupiedStates.Contains(s.Id))
             .OrderBy(_ => _random.Next())
             .Take(_countriesCount)
-            .Select(s => s.Id);
+            .Select(s =>
+            {
+                _occupiedStates.Add(s.Id);
+                return s.Id;
+            });
     }
 
     private int SelectState(IReadOnlyCollection<int> candidates, List<CountryMap> countries)
     {
+        var validCandidates = candidates.Where(id => !_occupiedStates.Contains(id)).ToList();
+        if (validCandidates.Count == 0)
+            return -1;
         var scores = candidates
             .AsValueEnumerable()
             .Select(id => new
@@ -120,7 +147,7 @@ public sealed class MapGenerator
         {
             Value = scores.Max(s => s.Value),
             Dispersion = scores.Max(s => s.Dispersion),
-            TypeMatch = scores.Max(s => s.TypeMatch)
+            TypeMatch = scores.Max(s => s.TypeMatch),
         };
 
         return scores
@@ -156,8 +183,12 @@ public sealed class MapGenerator
             .Average(countryMap => countryMap.Type.EqualsForType(targetType) ? 1 : 0);
     }
 
+    private readonly Dictionary<(int, int), int> _pathCache = new();
+
     private int ShortestPathLengthBfs(int start, int end)
     {
+        if (_pathCache.TryGetValue((start, end), out var cached))
+            return cached;
         var visited = new HashSet<int>();
         var queue = new Queue<(int, int)>();
         queue.Enqueue((start, 0));
@@ -166,6 +197,7 @@ public sealed class MapGenerator
             var (current, distance) = queue.Dequeue();
             if (current == end)
             {
+                _pathCache[(start, end)] = distance;
                 return distance;
             }
             if (!visited.Add(current))
@@ -182,6 +214,7 @@ public sealed class MapGenerator
                 queue.Enqueue((edge, distance + 1));
             }
         }
+        _pathCache[(start, end)] = -1;
         return -1;
     }
 
@@ -198,7 +231,7 @@ public sealed class MapGenerator
             double targetValue = targetValues[i];
 
             double ratio = targetValue / currentValue;
-            if (double.IsNaN(ratio) || ratio >= 0.95 && ratio <= 1.05)
+            if (double.IsNaN(ratio) || ratio is >= 0.95 and <= 1.05)
             {
                 continue;
             }
@@ -218,41 +251,83 @@ public sealed class MapGenerator
 
     private void AdjustStateProperties(StateMap state, double ratio)
     {
+        const double industrialFactoryMinRatio = 0.8;
+        const double industrialResourceMaxRatio = 1.0;
+        const double resourceResourceMinRatio = 0.8;
+
         var type = state.StateType;
+        var originalFactories = state.Factories;
+        var originalResources = state.Resources;
 
         if (type == StateType.Industrial)
         {
+            double factoryRatio = ratio * 1.2;
+            factoryRatio = Math.Max(industrialFactoryMinRatio, Math.Min(1.2, factoryRatio));
             state.Factories = ClampValue(
-                (int)(state.Factories * ratio * 1.2),
-                StatePropertyLimit.MaxMaxFactories
+                (int)(originalFactories * factoryRatio),
+                min: (int)(originalFactories * industrialFactoryMinRatio),
+                max: StatePropertyLimit.MaxMaxFactories
             );
-            state.Resources = ClampValue((int)(state.Resources * ratio), StatePropertyLimit.MaxResources);
+
+            double resourceRatio = ratio * 0.8;
+            resourceRatio = Math.Min(industrialResourceMaxRatio, resourceRatio);
+            state.Resources = ClampValue(
+                (int)(originalResources * resourceRatio),
+                max: StatePropertyLimit.MaxResources
+            );
         }
         else if (type == StateType.Resource)
         {
+            double resourceRatio = ratio * 1.2;
+            resourceRatio = Math.Max(resourceResourceMinRatio, Math.Min(1.2, resourceRatio));
             state.Resources = ClampValue(
-                (int)(state.Resources * ratio * 1.2),
-                StatePropertyLimit.MaxResources
+                (int)(originalResources * resourceRatio),
+                min: (int)(originalResources * resourceResourceMinRatio),
+                max: StatePropertyLimit.MaxResources
             );
-            state.Factories = ClampValue((int)(state.Factories * ratio), StatePropertyLimit.MaxMaxFactories);
+
+            state.Factories = ClampValue(
+                (int)(originalFactories * ratio * 0.8),
+                max: StatePropertyLimit.MaxMaxFactories
+            );
         }
         else
         {
-            double factoryRatio = ratio * (0.8 + _random.NextDouble() * 0.4);
-            double resourceRatio = ratio * (0.8 + _random.NextDouble() * 0.4);
+            double factoryRatio = ratio * (0.9 + _random.NextDouble() * 0.2); // 0.9-1.1
+            double resourceRatio = ratio * (0.9 + _random.NextDouble() * 0.2);
 
             state.Factories = ClampValue(
-                (int)(state.Factories * factoryRatio),
-                StatePropertyLimit.MaxMaxFactories
+                (int)(originalFactories * factoryRatio),
+                min: (int)(originalFactories * 0.7),
+                max: StatePropertyLimit.MaxMaxFactories
             );
             state.Resources = ClampValue(
-                (int)(state.Resources * resourceRatio),
-                StatePropertyLimit.MaxResources
+                (int)(originalResources * resourceRatio),
+                min: (int)(originalResources * 0.7),
+                max: StatePropertyLimit.MaxResources
             );
         }
     }
 
-    private static int ClampValue(int value, int max) => Math.Max(0, Math.Min(value, max));
+    //
+    // private void RebalanceProperties(StateMap state)
+    // {
+    //     switch (state.StateType)
+    //     {
+    //         case StateType.Industrial:
+    //             state.Resources = (int)(state.Factories * 0.4);
+    //             break;
+    //         case StateType.Resource:
+    //             state.Factories = (int)(state.Resources * 0.3);
+    //             break;
+    //         default:
+    //             state.Resources = Math.Min(state.Factories * 24, StatePropertyLimit.MaxResources);
+    //             break;
+    //     }
+    // }
+
+    private static int ClampValue(int value, int min = 0, int max = int.MaxValue) =>
+        Math.Max(min, Math.Min(value, max));
 
     private double[] GenerateNormalDistribution(int count)
     {
@@ -276,12 +351,13 @@ public sealed class MapGenerator
             Dictionary<int, StateMap> stateMap
         )
         {
-            return new ValidatorResult
+            var result = new ValidatorResult
             {
                 IsConnected = CheckConnectivity(countries, stateMap),
                 ValueStdDev = CalculateValueStdDev(countries),
                 CountryTypeDistribution = GetTypeDistribution(countries),
             };
+            return result;
         }
 
         private static bool CheckConnectivity(
@@ -306,7 +382,9 @@ public sealed class MapGenerator
                     foreach (
                         int edge in stateMap[current]
                             .Edges.AsValueEnumerable()
-                            .Where(edge => country.ContainsState(edge) || stateMap[edge].IsImpassable)
+                            .Where(edge =>
+                                country.ContainsState(edge) || stateMap[edge].IsImpassable
+                            )
                     )
                     {
                         if (!visited.Contains(edge))
@@ -331,7 +409,9 @@ public sealed class MapGenerator
             return Math.Sqrt(values.Average(v => Math.Pow(v - mean, 2)));
         }
 
-        private static Dictionary<CountryType, int> GetTypeDistribution(IEnumerable<CountryMap> countries)
+        private static Dictionary<CountryType, int> GetTypeDistribution(
+            IEnumerable<CountryMap> countries
+        )
         {
             return countries
                 .AsValueEnumerable()
@@ -353,7 +433,7 @@ public sealed class MapGenerator
                     new TmpState
                     {
                         Id = i,
-                        IsImpassable = rand.NextDouble() < 0.1,
+                        IsImpassable = false,
                         VictoryPoint = rand.Next(0, StatePropertyLimit.MaxVictoryPoint),
                         Adjacencies = GenerateAdjacencies(i, count, rand),
                     }
@@ -379,17 +459,18 @@ public sealed class MapGenerator
 
         public static void TestMain()
         {
-            var testStates = GenerateTestStates(1000);
+            var testStates = GenerateTestStates(2000);
 
             var generator = new MapGenerator(
                 states: testStates,
-                countriesCount: 50,
+                countriesCount: 100,
                 randomSeed: 114514,
                 valueMean: 5000,
                 valueStdDev: 1000
             );
-
+            Console.WriteLine("生成地图...");
             var countries = generator.Divide();
+            Console.WriteLine("分割完成...");
 
             var result = Validator.Validate(countries, CountryMap.StateMaps);
 

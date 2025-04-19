@@ -48,16 +48,23 @@ public sealed class CountryMap
 
     private void UpdateBorders(int addedState)
     {
+        Console.WriteLine($"更新{Id}的接壤省份", Id);
         foreach (
             int edge in StateMaps[addedState]
                 .Edges.AsValueEnumerable()
-                .Where(edge => !_statesId.Contains(edge))
+                .Where(edge =>
+                    !_statesId.Contains(edge) && !MapGenerator.GetOccupiedStates().Contains(edge)
+                )
         )
         {
             _border.Add(edge);
         }
 
         _border.Remove(addedState);
+        foreach (var edge in _border.Where(e => MapGenerator.GetOccupiedStates().Contains(e)))
+        {
+            _border.Remove(edge);
+        }
     }
 
     private void UpdateCountryType()
@@ -72,7 +79,7 @@ public sealed class CountryMap
         {
             StateType.Industrial => CountryType.Industrial,
             StateType.Resource => CountryType.Resource,
-            _ => CountryType.Balanced
+            _ => CountryType.Balanced,
         };
     }
 }
