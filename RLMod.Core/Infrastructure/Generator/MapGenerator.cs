@@ -49,7 +49,7 @@ public sealed class MapGenerator
         _countriesCount = countriesCount;
         _valueMean = valueMean;
         _valueStdDev = valueStdDev;
-        CountryMap.SetStateInfoManager(_stateInfoManager);
+        CountryInfo.SetStateInfoManager(_stateInfoManager);
         ValidateStateCount();
     }
 
@@ -64,11 +64,11 @@ public sealed class MapGenerator
         }
     }
 
-    public IReadOnlyCollection<CountryMap> GenerateRandomCountry()
+    public IReadOnlyCollection<CountryInfo> GenerateRandomCountry()
     {
         Log.Info("选择初始位置...");
         var countries = GetRandomInitialStateId()
-            .Select(initialStateId => new CountryMap(initialStateId))
+            .Select(initialStateId => new CountryInfo(initialStateId))
             .ToArray();
         Log.Info("初始位置分配完毕...");
 
@@ -98,9 +98,9 @@ public sealed class MapGenerator
     }
 
     private bool ExpandCountry(
-        CountryMap country,
+        CountryInfo country,
         IReadOnlyCollection<int> candidates,
-        CountryMap[] countries
+        CountryInfo[] countries
     )
     {
         int stateId = GetIdOfBestState(candidates, countries);
@@ -133,7 +133,7 @@ public sealed class MapGenerator
             });
     }
 
-    private int GetIdOfBestState(IReadOnlyCollection<int> candidates, CountryMap[] countries)
+    private int GetIdOfBestState(IReadOnlyCollection<int> candidates, CountryInfo[] countries)
     {
         var validCandidates = candidates.Where(id => !OccupiedStates.Contains(id)).ToList();
         if (validCandidates.Count == 0)
@@ -173,7 +173,7 @@ public sealed class MapGenerator
             .Id;
     }
 
-    private double CalculateDispersion(int id, CountryMap[] countries)
+    private double CalculateDispersion(int id, CountryInfo[] countries)
     {
         int sumDistance = countries
             .AsValueEnumerable()
@@ -183,7 +183,7 @@ public sealed class MapGenerator
         return (double)sumDistance / (countries.Length - 1);
     }
 
-    private double CalculateTypeMatch(int id, CountryMap[] countries)
+    private double CalculateTypeMatch(int id, CountryInfo[] countries)
     {
         var targetType = _stateInfoManager.GetStateInfo(id).Type;
         return countries
@@ -232,7 +232,7 @@ public sealed class MapGenerator
         return -1;
     }
 
-    private void ApplyValueDistribution(IReadOnlyCollection<CountryMap> countries)
+    private void ApplyValueDistribution(IReadOnlyCollection<CountryInfo> countries)
     {
         double[] targetValues = GenerateNormalDistribution(countries.Count).Order().ToArray();
 

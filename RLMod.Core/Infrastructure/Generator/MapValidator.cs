@@ -12,7 +12,7 @@ public static class Validator
     }
 
     public static ValidatorResult Validate(
-        IReadOnlyCollection<CountryMap> countries,
+        IReadOnlyCollection<CountryInfo> countries,
         IReadOnlyDictionary<int, StateInfo> stateMap
     )
     {
@@ -26,7 +26,7 @@ public static class Validator
     }
 
     private static bool CheckConnectivity(
-        IEnumerable<CountryMap> countries,
+        IEnumerable<CountryInfo> countries,
         IReadOnlyDictionary<int, StateInfo> stateMap
     )
     {
@@ -65,14 +65,14 @@ public static class Validator
         return true;
     }
 
-    private static double CalculateValueStdDev(IEnumerable<CountryMap> countries)
+    private static double CalculateValueStdDev(IEnumerable<CountryInfo> countries)
     {
         double[] values = countries.AsValueEnumerable().Select(c => c.GetValue()).ToArray();
         double mean = values.Average();
         return Math.Sqrt(values.Average(v => Math.Pow(v - mean, 2)));
     }
 
-    private static Dictionary<CountryType, int> GetTypeDistribution(IEnumerable<CountryMap> countries)
+    private static Dictionary<CountryType, int> GetTypeDistribution(IEnumerable<CountryInfo> countries)
     {
         return countries.AsValueEnumerable().GroupBy(c => c.Type).ToDictionary(g => g.Key, g => g.Count());
     }
