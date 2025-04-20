@@ -25,18 +25,21 @@ public sealed class StateInfo
     private double GetValue()
     {
         return (double)Factories
-                / StatePropertyLimit.MaxMaxFactories
+                / AppSettingService.StateGenerate.MaxFactoryNumber
                 * 100
-                * StatePropertyLimit.FactoriesWeight
+                * AppSettingService.StateGenerate.FactoryNumberWeight
             + (double)MaxFactories
-                / StatePropertyLimit.MaxMaxFactories
+                / AppSettingService.StateGenerate.MaxFactoryNumber
                 * 100
-                * StatePropertyLimit.MaxFactoriesWeight
-            + (double)Resources / StatePropertyLimit.MaxResources * 100 * StatePropertyLimit.ResourcesWeight
+                * AppSettingService.StateGenerate.MaxFactoryNumberWeight
+            + (double)Resources
+                / AppSettingService.StateGenerate.MaxResourceNumber
+                * 100
+                * AppSettingService.StateGenerate.ResourcesWeight
             + (double)TotalVictoryPoint
-                / StatePropertyLimit.MaxVictoryPoint
+                / AppSettingService.StateGenerate.MaxVictoryPoint
                 * 100
-                * StatePropertyLimit.VictoryPointWeight;
+                * AppSettingService.StateGenerate.VictoryPointWeight;
     }
 
     private readonly State _state;
@@ -45,6 +48,8 @@ public sealed class StateInfo
 
     private static readonly StateCategoryService StateCategoryService =
         App.Current.Services.GetRequiredService<StateCategoryService>();
+    private static readonly AppSettingService AppSettingService =
+        App.Current.Services.GetRequiredService<AppSettingService>();
 
     public StateInfo(State state, int[] adjacent, StateType type)
     {
@@ -55,8 +60,8 @@ public sealed class StateInfo
         IsImpassable = state.IsImpassable;
         TotalVictoryPoint = state.VictoryPoints.Sum(point => point.Value);
 
-        int maxFactoriesLimit = StatePropertyLimit.MaxMaxFactories;
-        int resourcesLimit = StatePropertyLimit.MaxResources;
+        int maxFactoriesLimit = AppSettingService.StateGenerate.MaxFactoryNumber;
+        int resourcesLimit = AppSettingService.StateGenerate.MaxResourceNumber;
 
         switch (Type)
         {

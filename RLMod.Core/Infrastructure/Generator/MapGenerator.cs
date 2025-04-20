@@ -22,6 +22,7 @@ public sealed class MapGenerator
     private readonly double _valueMean;
     private readonly double _valueStdDev;
     private readonly Dictionary<(int, int), int> _pathCache = new();
+    private readonly AppSettingService _settings;
 
     private static readonly Logger Log = LogManager.GetCurrentClassLogger();
 
@@ -33,9 +34,9 @@ public sealed class MapGenerator
         double valueStdDev = 1000
     )
     {
-        var settings = App.Current.Services.GetRequiredService<AppSettingService>();
-        string provinceFilePath = Path.Combine(settings.GameRootFolderPath, "map", "provinces.bmp");
-        string definitionFilePath = Path.Combine(settings.GameRootFolderPath, "map", "definition.csv");
+        _settings = App.Current.Services.GetRequiredService<AppSettingService>();
+        string provinceFilePath = Path.Combine(_settings.GameRootFolderPath, "map", "provinces.bmp");
+        string definitionFilePath = Path.Combine(_settings.GameRootFolderPath, "map", "definition.csv");
 
         if (!ProvinceParser.TryParse(provinceFilePath, definitionFilePath, out var provinces))
         {
@@ -279,14 +280,14 @@ public sealed class MapGenerator
             state.Factories = ClampValue(
                 (int)(originalFactories * factoryRatio),
                 min: (int)(originalFactories * industrialFactoryMinRatio),
-                max: StatePropertyLimit.MaxMaxFactories
+                max: _settings.StateGenerate.MaxFactoryNumber
             );
 
             double resourceRatio = ratio * 0.8;
             resourceRatio = Math.Min(industrialResourceMaxRatio, resourceRatio);
             state.Resources = ClampValue(
                 (int)(originalResources * resourceRatio),
-                max: StatePropertyLimit.MaxResources
+                max: _settings.StateGenerate.MaxResourceNumber
             );
         }
         else if (type == StateType.Resource)
@@ -296,12 +297,12 @@ public sealed class MapGenerator
             state.Resources = ClampValue(
                 (int)(originalResources * resourceRatio),
                 min: (int)(originalResources * resourceResourceMinRatio),
-                max: StatePropertyLimit.MaxResources
+                max: _settings.StateGenerate.MaxResourceNumber
             );
 
             state.Factories = ClampValue(
                 (int)(originalFactories * ratio * 0.8),
-                max: StatePropertyLimit.MaxMaxFactories
+                max: _settings.StateGenerate.MaxFactoryNumber
             );
         }
         else
@@ -312,12 +313,12 @@ public sealed class MapGenerator
             state.Factories = ClampValue(
                 (int)(originalFactories * factoryRatio),
                 min: (int)(originalFactories * 0.7),
-                max: StatePropertyLimit.MaxMaxFactories
+                max: _settings.StateGenerate.MaxFactoryNumber
             );
             state.Resources = ClampValue(
                 (int)(originalResources * resourceRatio),
                 min: (int)(originalResources * 0.7),
-                max: StatePropertyLimit.MaxResources
+                max: _settings.StateGenerate.MaxResourceNumber
             );
         }
     }

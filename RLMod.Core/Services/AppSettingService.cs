@@ -1,5 +1,6 @@
 ﻿using MemoryPack;
 using NLog;
+using RLMod.Core.Models.Settings;
 
 namespace RLMod.Core.Services;
 
@@ -13,14 +14,20 @@ public sealed partial class AppSettingService
         set => SetProperty(ref field, value);
     } = string.Empty;
 
+    [MemoryPackOrder(1)]
+    public StateGenerateSettings StateGenerate { get; set; }
+
     [MemoryPackIgnore]
-    public bool IsChanged { get; private set; }
+    public bool IsChanged { get; set; }
 
     private static readonly string ConfigFilePath = Path.Combine(App.AppConfigPath, "AppSettings.bin");
 
     private static readonly Logger Log = LogManager.GetCurrentClassLogger();
 
-    private AppSettingService() { }
+    private AppSettingService()
+    {
+        StateGenerate = new StateGenerateSettings { SettingService = this };
+    }
 
     private void SetProperty<T>(ref T field, T newValue)
     {

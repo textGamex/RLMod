@@ -14,6 +14,7 @@ public sealed class CountryMap
     private readonly HashSet<int> _statesId = [];
     private readonly HashSet<int> _border = [];
 
+    // TODO: _statesId 是否应该替换为 StateInfo 类?
     public CountryMap(int initialStateId)
     {
         Id = initialStateId;
