@@ -3,6 +3,7 @@ using MathNet.Numerics.Random;
 using Microsoft.Extensions.DependencyInjection;
 using NLog;
 using RLMod.Core.Extensions;
+using RLMod.Core.Helpers;
 using RLMod.Core.Infrastructure.Parser;
 using RLMod.Core.Models.Map;
 using RLMod.Core.Services;
@@ -18,7 +19,7 @@ public sealed class MapGenerator
 
     private readonly StateInfoManager _stateInfoManager;
     private readonly int _countriesCount;
-    private readonly Random _random;
+    private readonly MersenneTwister _random;
     private readonly double _valueMean;
     private readonly double _valueStdDev;
     private readonly Dictionary<(int, int), int> _pathCache = new();
@@ -30,7 +31,6 @@ public sealed class MapGenerator
     public MapGenerator(
         IReadOnlyList<State> states,
         int countriesCount = MapSettings.MaxCountry,
-        int randomSeed = MapSettings.RandomSeed,
         double valueMean = 5000,
         double valueStdDev = 1000
     )
@@ -50,7 +50,7 @@ public sealed class MapGenerator
         }
 
         _stateInfoManager = new StateInfoManager(states, provinces);
-        _random = new MersenneTwister(randomSeed);
+        _random = RandomHelper.GetRandomWithSeed();
         CountryInfo.SetStateInfoManager(_stateInfoManager);
         ValidateStateCount();
     }

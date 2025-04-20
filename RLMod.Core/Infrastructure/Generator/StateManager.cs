@@ -1,6 +1,8 @@
 ﻿using System.Collections.Frozen;
+using MathNet.Numerics.Random;
 using MethodTimer;
 using Microsoft.Extensions.DependencyInjection;
+using RLMod.Core.Helpers;
 using RLMod.Core.Infrastructure.Parser;
 using RLMod.Core.Models.Map;
 using RLMod.Core.Services;
@@ -32,7 +34,8 @@ public sealed class StateInfoManager
             }
         }
 
-        var stateTypes = Random.Shared.GetItems(Enum.GetValues<StateType>(), states.Count);
+        var random = RandomHelper.GetRandomWithSeed();
+        var stateTypes = random.GetItems(Enum.GetValues<StateType>(), states.Count);
         for (int i = 0; i < states.Count; i++)
         {
             var state = states[i];

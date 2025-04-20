@@ -17,6 +17,12 @@ public sealed partial class AppSettingService
     [MemoryPackOrder(1)]
     public StateGenerateSettings StateGenerate { get; set; }
 
+    /// <summary>
+    /// 全局随机数生成器的种子, 相同的种子应生成相同的 Mod
+    /// </summary>
+    [MemoryPackIgnore]
+    public int? RandomSeed { get; set; }
+
     [MemoryPackIgnore]
     public bool IsChanged { get; set; }
 

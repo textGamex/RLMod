@@ -1,5 +1,6 @@
 ﻿using MathNet.Numerics.Random;
 using Microsoft.Extensions.DependencyInjection;
+using RLMod.Core.Helpers;
 using RLMod.Core.Models.Map;
 using RLMod.Core.Services;
 
@@ -44,7 +45,7 @@ public sealed class StateInfo
 
     private readonly State _state;
     private readonly int[] _adjacent;
-    private readonly Random _random;
+    private readonly MersenneTwister _random;
 
     private static readonly StateCategoryService StateCategoryService =
         App.Current.Services.GetRequiredService<StateCategoryService>();
@@ -53,7 +54,8 @@ public sealed class StateInfo
 
     public StateInfo(State state, int[] adjacent, StateType type)
     {
-        _random = new MersenneTwister(false);
+        _random = RandomHelper.GetRandomWithSeed();
+
         _state = state;
         _adjacent = adjacent;
         Type = type;
