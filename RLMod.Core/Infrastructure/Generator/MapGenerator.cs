@@ -23,6 +23,7 @@ public sealed class MapGenerator
     private readonly double _valueStdDev;
     private readonly Dictionary<(int, int), int> _pathCache = new();
     private readonly AppSettingService _settings;
+    private readonly CountryTagService _countryTagService;
 
     private static readonly Logger Log = LogManager.GetCurrentClassLogger();
 
@@ -34,7 +35,12 @@ public sealed class MapGenerator
         double valueStdDev = 1000
     )
     {
+        _countryTagService = App.Current.Services.GetRequiredService<CountryTagService>();
         _settings = App.Current.Services.GetRequiredService<AppSettingService>();
+        _countriesCount = countriesCount;
+        _valueMean = valueMean;
+        _valueStdDev = valueStdDev;
+
         string provinceFilePath = Path.Combine(_settings.GameRootFolderPath, "map", "provinces.bmp");
         string definitionFilePath = Path.Combine(_settings.GameRootFolderPath, "map", "definition.csv");
 
@@ -45,10 +51,6 @@ public sealed class MapGenerator
 
         _stateInfoManager = new StateInfoManager(states, provinces);
         _random = new MersenneTwister(randomSeed);
-
-        _countriesCount = countriesCount;
-        _valueMean = valueMean;
-        _valueStdDev = valueStdDev;
         CountryInfo.SetStateInfoManager(_stateInfoManager);
         ValidateStateCount();
     }
@@ -67,9 +69,19 @@ public sealed class MapGenerator
     public IReadOnlyCollection<CountryInfo> GenerateRandomCountry()
     {
         Log.Info("选择初始位置...");
+
+        var countryTags = _countryTagService.GetCountryTags().ToList();
+
         var countries = GetRandomInitialStateId()
-            .Select(initialStateId => new CountryInfo(initialStateId))
+            .Select(initialStateId =>
+            {
+                int index = _random.Next(countryTags.Count);
+                string countryTag = countryTags[index];
+                countryTags.RemoveFastAt(index);
+                return new CountryInfo(initialStateId, countryTag);
+            })
             .ToArray();
+
         Log.Info("初始位置分配完毕...");
 
         bool isChange;

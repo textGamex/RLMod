@@ -4,6 +4,7 @@ namespace RLMod.Core.Infrastructure.Generator;
 
 public sealed class CountryInfo
 {
+    public string Tag { get; }
     public CountryType Type { get; private set; }
     public int Id { get; }
 
@@ -15,8 +16,9 @@ public sealed class CountryInfo
     private readonly HashSet<int> _border = [];
 
     // TODO: _statesId 是否应该替换为 StateInfo 类?
-    public CountryInfo(int initialStateId)
+    public CountryInfo(int initialStateId, string tag)
     {
+        Tag = tag;
         Id = initialStateId;
         AddState(initialStateId);
     }
