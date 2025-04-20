@@ -246,7 +246,8 @@ public sealed class MapGenerator
 
     private void ApplyValueDistribution(IReadOnlyCollection<CountryInfo> countries)
     {
-        double[] targetValues = GenerateNormalDistribution(countries.Count).Order().ToArray();
+        double[] targetValues = GenerateNormalDistribution(countries.Count);
+        Array.Sort(targetValues);
 
         var orderedCountries = countries.OrderBy(c => c.GetValue()).ToArray();
 
