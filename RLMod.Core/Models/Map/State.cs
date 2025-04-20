@@ -10,6 +10,7 @@ public sealed class State
 {
     public ushort Id { get; set; }
     public string Name { get; set; } = string.Empty;
+    public bool IsImpassable { get; set; }
     public string Owner { get; set; } = string.Empty;
     public int Manpower { get; set; }
     public string Category { get; set; } = string.Empty;

@@ -119,6 +119,10 @@ public sealed partial class MainWindowViewModel(AppSettingService settingService
         {
             state.Category = leaf.ValueText;
         }
+        else if (leaf.Key.EqualsIgnoreCase("impassable") && leaf.Value.TryGetBool(out bool isImpassable))
+        {
+            state.IsImpassable = isImpassable;
+        }
     }
 
     private static int[] ParseProvinces(Node node)
