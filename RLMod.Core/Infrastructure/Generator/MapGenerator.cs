@@ -145,7 +145,7 @@ public sealed class MapGenerator
             .Select(id => new
             {
                 Id = id,
-                Value = _stateInfoManager.GetStateInfo(id).GetValue(),
+                _stateInfoManager.GetStateInfo(id).Value,
                 Dispersion = CalculateDispersion(id, countries),
                 TypeMatch = CalculateTypeMatch(id, countries),
             })
@@ -184,7 +184,7 @@ public sealed class MapGenerator
 
     private double CalculateTypeMatch(int id, CountryMap[] countries)
     {
-        var targetType = _stateInfoManager.GetStateInfo(id).StateType;
+        var targetType = _stateInfoManager.GetStateInfo(id).Type;
         return countries
             .AsValueEnumerable()
             .Where(c => c.GetPassableBorder().Contains(id))
@@ -268,7 +268,7 @@ public sealed class MapGenerator
         const double industrialResourceMaxRatio = 1.0;
         const double resourceResourceMinRatio = 0.8;
 
-        var type = state.StateType;
+        var type = state.Type;
         int originalFactories = state.Factories;
         int originalResources = state.Resources;
 

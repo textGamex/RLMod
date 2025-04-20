@@ -37,7 +37,7 @@ public sealed class StateInfoManager
         {
             var state = states[i];
             stateInfos[state.Id] = new StateInfo(
-                state.Id,
+                state,
                 stateAdjacentMap.TryGetValue(state.Id, out var ints) ? ints.ToArray() : [],
                 state.IsImpassable,
                 state.VictoryPoints.Sum(point => point.Value),

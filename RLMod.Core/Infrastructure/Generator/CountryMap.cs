@@ -31,7 +31,7 @@ public sealed class CountryMap
     /// <returns>国家的价值</returns>
     public double GetValue()
     {
-        return _statesId.Sum(id => StateInfoManager.GetStateInfo(id).GetValue());
+        return _statesId.Sum(id => StateInfoManager.GetStateInfo(id).Value);
     }
 
     public IReadOnlyCollection<int> GetPassableBorder()
@@ -73,7 +73,7 @@ public sealed class CountryMap
     private void UpdateCountryType()
     {
         var typeGroups = _statesId
-            .Select(stateId => StateInfoManager.GetStateInfo(stateId).StateType)
+            .Select(stateId => StateInfoManager.GetStateInfo(stateId).Type)
             .GroupBy(type => type)
             .ToDictionary(g => g.Key, g => g.Count());
 
