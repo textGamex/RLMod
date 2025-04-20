@@ -46,14 +46,14 @@ public sealed class StateInfo
     private static readonly StateCategoryService StateCategoryService =
         App.Current.Services.GetRequiredService<StateCategoryService>();
 
-    public StateInfo(State state, int[] adjacent, bool isImpassable, int totalVictoryPoint, StateType type)
+    public StateInfo(State state, int[] adjacent, StateType type)
     {
         _random = new MersenneTwister(false);
         _state = state;
         _adjacent = adjacent;
         Type = type;
-        IsImpassable = isImpassable;
-        TotalVictoryPoint = totalVictoryPoint;
+        IsImpassable = state.IsImpassable;
+        TotalVictoryPoint = state.VictoryPoints.Sum(point => point.Value);
 
         int maxFactoriesLimit = StatePropertyLimit.MaxMaxFactories;
         int resourcesLimit = StatePropertyLimit.MaxResources;

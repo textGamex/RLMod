@@ -39,8 +39,6 @@ public sealed class StateInfoManager
             stateInfos[state.Id] = new StateInfo(
                 state,
                 stateAdjacentMap.TryGetValue(state.Id, out var ints) ? ints.ToArray() : [],
-                state.IsImpassable,
-                state.VictoryPoints.Sum(point => point.Value),
                 stateTypes[i]
             );
         }
