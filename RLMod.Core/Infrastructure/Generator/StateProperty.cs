@@ -10,17 +10,17 @@ public sealed class StateProperty
     public int Factories { get; set; }
     public int MaxFactories { get; }
     public int Resources { get; set; }
-    public int VictoryPoint { get; }
+    public int TotalVictoryPoint { get; }
 
     private readonly Random _random;
     private static readonly StateCategoryService StateCategoryService =
         App.Current.Services.GetRequiredService<StateCategoryService>();
 
-    public StateProperty(TmpState state, StateType type, int maxFactoriesLimit, int resourcesLimit)
+    public StateProperty(int totalVictoryPoint, StateType type, int maxFactoriesLimit, int resourcesLimit)
     {
         _random = new MersenneTwister(false);
         Type = type;
-        VictoryPoint = state.VictoryPoint;
+        TotalVictoryPoint = totalVictoryPoint;
 
         switch (Type)
         {
@@ -109,7 +109,7 @@ public sealed class StateProperty
             * 100
             * StatePropertyLimit.MaxFactoriesWeight
         + (double)Resources / StatePropertyLimit.MaxResources * 100 * StatePropertyLimit.ResourcesWeight
-        + (double)VictoryPoint
+        + (double)TotalVictoryPoint
             / StatePropertyLimit.MaxVictoryPoint
             * 100
             * StatePropertyLimit.VictoryPointWeight;

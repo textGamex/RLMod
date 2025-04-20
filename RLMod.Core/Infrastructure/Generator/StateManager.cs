@@ -1,4 +1,9 @@
 ﻿using System.Collections.Frozen;
+using MethodTimer;
+using Microsoft.Extensions.DependencyInjection;
+using RLMod.Core.Infrastructure.Parser;
+using RLMod.Core.Models.Map;
+using RLMod.Core.Services;
 
 namespace RLMod.Core.Infrastructure.Generator;
 
@@ -9,18 +14,75 @@ public sealed class StateInfoManager
 
     private readonly FrozenDictionary<int, StateInfo> _stateInfos;
 
-    public StateInfoManager(IReadOnlyCollection<TmpState> states)
+    [Time]
+    public StateInfoManager(IReadOnlyList<State> states, IReadOnlyDictionary<int, Province> provinces)
     {
+        // var provinceService = App.Current.Services.GetRequiredService<ProvinceService>();
+        // var oceanProvinces = provinceService.GetOceanProvinces(provinces);
         var stateInfos = new Dictionary<int, StateInfo>(states.Count);
+        var stateAdjacentMap = new Dictionary<int, List<int>>(states.Count);
+
+        for (int i = 0; i < states.Count; i++)
+        {
+            var state = states[i];
+            for (int j = i + 1; j < states.Count; j++)
+            {
+                var otherState = states[j];
+                LookupStateAdjacencies(state, otherState, provinces, stateAdjacentMap);
+            }
+        }
 
         var stateTypes = Random.Shared.GetItems(Enum.GetValues<StateType>(), states.Count);
-        int i = 0;
-        foreach (var state in states)
+        for (int i = 0; i < states.Count; i++)
         {
-            stateInfos[state.Id] = new StateInfo(state, stateTypes[i++]);
+            var state = states[i];
+            stateInfos[state.Id] = new StateInfo(
+                state.Id,
+                stateAdjacentMap.TryGetValue(state.Id, out var ints) ? ints.ToArray() : [],
+                false,
+                state.VictoryPoints.Sum(point => point.Value),
+                stateTypes[i]
+            );
         }
 
         _stateInfos = stateInfos.ToFrozenDictionary();
+    }
+
+    private void LookupStateAdjacencies(
+        State state,
+        State otherState,
+        IReadOnlyDictionary<int, Province> provinces,
+        Dictionary<int, List<int>> stateAdjacentMap
+    )
+    {
+        foreach (int provinceId in state.Provinces)
+        {
+            foreach (int otherStateProvinceId in otherState.Provinces)
+            {
+                if (
+                    !provinces.TryGetValue(otherStateProvinceId, out var otherStateProvince)
+                    || !otherStateProvince.Adjacencies.Contains(provinceId)
+                )
+                {
+                    continue;
+                }
+
+                if (!stateAdjacentMap.TryGetValue(state.Id, out var adjacentList))
+                {
+                    adjacentList = new List<int>(4);
+                    stateAdjacentMap[state.Id] = adjacentList;
+                }
+                adjacentList.Add(otherState.Id);
+
+                if (!stateAdjacentMap.TryGetValue(otherState.Id, out var otherStateAdjacentList))
+                {
+                    otherStateAdjacentList = new List<int>(4);
+                    stateAdjacentMap[otherState.Id] = otherStateAdjacentList;
+                }
+                otherStateAdjacentList.Add(state.Id);
+                return;
+            }
+        }
     }
 
     public StateInfo GetStateInfo(int stateId)

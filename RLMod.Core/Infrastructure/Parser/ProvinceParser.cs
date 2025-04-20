@@ -15,7 +15,7 @@ public sealed class ProvinceParser
     public static bool TryParse(
         string provincesFilePath,
         string definitionFilePath,
-        out IEnumerable<Province> provinces
+        out IReadOnlyDictionary<int, Province> provinces
     )
     {
         Log.Info("Starting province parser...");
@@ -32,13 +32,13 @@ public sealed class ProvinceParser
             ParseProvinceBmp(provincesFilePath, provincesMap, colorToProvinceId);
 
             Log.Info("Province parser finish.");
-            provinces = provincesMap.Values;
+            provinces = provincesMap;
             return true;
         }
         catch (Exception e)
         {
             Log.Error(e, "解析 Province 文件失败");
-            provinces = [];
+            provinces = new Dictionary<int, Province>();
             return false;
         }
     }

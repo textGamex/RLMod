@@ -20,7 +20,7 @@ public sealed class CountryMap
         AddState(initialStateId);
     }
 
-    public static void SetStateInfos(StateInfoManager stateInfoManager)
+    public static void SetStateInfoManager(StateInfoManager stateInfoManager)
     {
         StateInfoManager = stateInfoManager;
     }

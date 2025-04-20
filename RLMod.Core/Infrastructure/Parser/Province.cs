@@ -10,5 +10,5 @@ public sealed class Province
     public bool IsCoastal { get; set; }
     public string Terrain { get; set; } = string.Empty;
     public int ContinentId { get; set; }
-    public HashSet<int> Adjacencies { get; set; } = [];
+    public HashSet<int> Adjacencies { get; } = [];
 }

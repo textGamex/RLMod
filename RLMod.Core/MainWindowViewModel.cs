@@ -6,16 +6,15 @@ using ParadoxPower.CSharpExtensions;
 using ParadoxPower.Process;
 using RLMod.Core.Extensions;
 using RLMod.Core.Helpers;
+using RLMod.Core.Infrastructure.Generator;
+using RLMod.Core.Infrastructure.Parser;
 using RLMod.Core.Models.Map;
 using RLMod.Core.Services;
 using ZLinq;
 
 namespace RLMod.Core;
 
-public sealed partial class MainWindowViewModel(
-    AppSettingService settingService,
-    StateCategoryService stateCategoryService
-) : ObservableObject
+public sealed partial class MainWindowViewModel(AppSettingService settingService) : ObservableObject
 {
     private static readonly Logger Log = LogManager.GetCurrentClassLogger();
 
@@ -40,8 +39,22 @@ public sealed partial class MainWindowViewModel(
     private void GenerateRandomizerMap()
     {
         string stateFolder = Path.Combine(GameRootPath, "history", "states");
-        // var states = GetStates(stateFolder);
-        Log.Info("{@A}", stateCategoryService.StateCategories);
+        var states = GetStates(stateFolder);
+        // var generator = new MapGenerator(states);
+        string provinceFilePath = Path.Combine(GameRootPath, "map", "provinces.bmp");
+        string definitionFilePath = Path.Combine(GameRootPath, "map", "definition.csv");
+
+        if (!ProvinceParser.TryParse(provinceFilePath, definitionFilePath, out var provinces))
+        {
+            throw new ArgumentException($"Could not parse province file: {provinceFilePath}");
+        }
+
+        var manager = new StateInfoManager(states, provinces);
+        foreach (var managerState in manager.States.Take(100))
+        {
+            Log.Debug("State Id: {Id}, 相邻: {Array}", managerState.Id, managerState.Edges);
+        }
+        // var countries = generator.GenerateRandomCountry();
     }
 
     private List<State> GetStates(string stateFolder)

@@ -1,20 +1,15 @@
 ﻿using MathNet.Numerics.Distributions;
 using MathNet.Numerics.Random;
+using Microsoft.Extensions.DependencyInjection;
 using NLog;
 using RLMod.Core.Extensions;
+using RLMod.Core.Infrastructure.Parser;
+using RLMod.Core.Models.Map;
+using RLMod.Core.Services;
 using ZLinq;
 using ZLinq.Linq;
 
 namespace RLMod.Core.Infrastructure.Generator;
-
-public class TmpState
-{
-    public int Id;
-    public bool IsImpassable;
-    public int VictoryPoint;
-
-    public HashSet<int> Adjacencies { get; set; } = [];
-}
 
 public sealed class MapGenerator
 {
@@ -31,20 +26,29 @@ public sealed class MapGenerator
     private static readonly Logger Log = LogManager.GetCurrentClassLogger();
 
     public MapGenerator(
-        IReadOnlyCollection<TmpState> states,
+        IReadOnlyList<State> states,
         int countriesCount = MapSettings.MaxCountry,
         int randomSeed = MapSettings.RandomSeed,
         double valueMean = 5000,
         double valueStdDev = 1000
     )
     {
-        _stateInfoManager = new StateInfoManager(states);
+        var settings = App.Current.Services.GetRequiredService<AppSettingService>();
+        string provinceFilePath = Path.Combine(settings.GameRootFolderPath, "map", "provinces.bmp");
+        string definitionFilePath = Path.Combine(settings.GameRootFolderPath, "map", "definition.csv");
+
+        if (!ProvinceParser.TryParse(provinceFilePath, definitionFilePath, out var provinces))
+        {
+            throw new ArgumentException($"Could not parse province file: {provinceFilePath}");
+        }
+
+        _stateInfoManager = new StateInfoManager(states, provinces);
         _random = new MersenneTwister(randomSeed);
 
         _countriesCount = countriesCount;
         _valueMean = valueMean;
         _valueStdDev = valueStdDev;
-        CountryMap.SetStateInfos(_stateInfoManager);
+        CountryMap.SetStateInfoManager(_stateInfoManager);
         ValidateStateCount();
     }
 
@@ -59,7 +63,7 @@ public sealed class MapGenerator
         }
     }
 
-    public IReadOnlyCollection<CountryMap> GetRandomCountry()
+    public IReadOnlyCollection<CountryMap> GenerateRandomCountry()
     {
         Log.Info("选择初始位置...");
         var countries = GetRandomInitialStateId()
@@ -344,69 +348,5 @@ public sealed class MapGenerator
         double[] values = new double[count];
         normal.Samples(values);
         return values;
-    }
-
-    public static class TestProgram
-    {
-        public static List<TmpState> GenerateTestStates(int count)
-        {
-            var rand = new Random(114514);
-            var states = new List<TmpState>();
-
-            for (int i = 0; i < count; i++)
-            {
-                states.Add(
-                    new TmpState
-                    {
-                        Id = i,
-                        IsImpassable = false,
-                        VictoryPoint = rand.Next(0, StatePropertyLimit.MaxVictoryPoint),
-                        Adjacencies = GenerateAdjacencies(i, count, rand),
-                    }
-                );
-            }
-            return states;
-        }
-
-        private static HashSet<int> GenerateAdjacencies(int currentId, int maxId, Random rand)
-        {
-            var adj = new HashSet<int>();
-            int numConnections = rand.Next(1, 5);
-            for (int i = 0; i < numConnections; i++)
-            {
-                int neighbor = rand.Next(0, maxId);
-                if (neighbor != currentId)
-                {
-                    adj.Add(neighbor);
-                }
-            }
-            return adj;
-        }
-
-        public static void TestMain()
-        {
-            var testStates = GenerateTestStates(2000);
-
-            var generator = new MapGenerator(
-                states: testStates,
-                countriesCount: 100,
-                randomSeed: 114514,
-                valueMean: 5000,
-                valueStdDev: 1000
-            );
-            Console.WriteLine("生成地图...");
-            var countries = generator.GetRandomCountry();
-            Console.WriteLine("分割完成...");
-
-            // var result = Validator.Validate(countries, CountryMap.StateInfoManager);
-
-            // Console.WriteLine($"连通性验证: {result.IsConnected}");
-            // Console.WriteLine($"价值标准差: {result.ValueStdDev:F2}");
-            // Console.WriteLine("国家类型分布:");
-            // foreach (var kvp in result.CountryTypeDistribution)
-            // {
-            //     Console.WriteLine($"{kvp.Key}: {kvp.Value} 个国家");
-            // }
-        }
     }
 }
