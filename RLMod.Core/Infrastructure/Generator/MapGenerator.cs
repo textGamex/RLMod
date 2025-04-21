@@ -1,5 +1,6 @@
 ﻿using MathNet.Numerics.Distributions;
 using MathNet.Numerics.Random;
+using MethodTimer;
 using Microsoft.Extensions.DependencyInjection;
 using NLog;
 using RLMod.Core.Extensions;
@@ -14,15 +15,19 @@ namespace RLMod.Core.Infrastructure.Generator;
 
 public sealed class MapGenerator
 {
-    public static IReadOnlySet<int> OccupiedStates => _occupiedStates;
-    private static readonly HashSet<int> _occupiedStates = [];
+    public static IReadOnlySet<StateInfo> OccupiedStates => _occupiedStates;
+
+    /// <summary>
+    /// 已经被分配的 States
+    /// </summary>
+    private static readonly HashSet<StateInfo> _occupiedStates = [];
 
     private readonly StateInfoManager _stateInfoManager;
     private readonly int _countriesCount;
     private readonly MersenneTwister _random;
     private readonly double _valueMean;
     private readonly double _valueStdDev;
-    private readonly Dictionary<(int, int), int> _pathCache = new();
+    private readonly Dictionary<(StateInfo, int), int> _pathCache = new();
     private readonly AppSettingService _settings;
     private readonly CountryTagService _countryTagService;
 
@@ -43,12 +48,11 @@ public sealed class MapGenerator
 
         if (!ProvinceParser.TryParse(_settings.GameRootFolderPath, out var provinces))
         {
-            throw new ArgumentException($"Could not parse province file");
+            throw new ArgumentException("Could not parse province file");
         }
 
         _stateInfoManager = new StateInfoManager(states, provinces);
         _random = RandomHelper.GetRandomWithSeed();
-        CountryInfo.SetStateInfoManager(_stateInfoManager);
         ValidateStateCount();
     }
 
@@ -63,19 +67,20 @@ public sealed class MapGenerator
         }
     }
 
+    [Time]
     public IReadOnlyCollection<CountryInfo> GenerateRandomCountry()
     {
         Log.Info("选择初始位置...");
 
         var countryTags = _countryTagService.GetCountryTags().ToList();
 
-        var countries = GetRandomInitialStateId()
-            .Select(initialStateId =>
+        var countries = GetRandomInitialState()
+            .Select(initialState =>
             {
                 int index = _random.Next(countryTags.Count);
                 string countryTag = countryTags[index];
                 countryTags.RemoveFastAt(index);
-                return new CountryInfo(initialStateId, countryTag);
+                return new CountryInfo(initialState, countryTag);
             })
             .ToArray();
 
@@ -88,7 +93,7 @@ public sealed class MapGenerator
 
             foreach (var country in countries)
             {
-                Log.Debug("尝试扩展...{Id}", country.Id);
+                Log.Debug("尝试扩展...{Id}", country.InitialId);
                 var passableBorder = country.GetPassableBorder();
                 if (passableBorder.Count <= 0)
                 {
@@ -108,136 +113,135 @@ public sealed class MapGenerator
 
     private bool ExpandCountry(
         CountryInfo country,
-        IReadOnlyCollection<int> candidates,
+        IReadOnlyCollection<StateInfo> candidates,
         CountryInfo[] countries
     )
     {
-        int stateId = GetIdOfBestState(candidates, countries);
-        if (stateId == -1)
+        var state = GetIdOfBestState(candidates, countries);
+        if (state is null)
         {
-            Log.Debug("无法扩展");
             return false;
         }
 
-        Log.Debug("向{StateId}扩展", stateId);
-        country.AddState(stateId);
-        _occupiedStates.Add(stateId);
+        Log.Debug("向{StateId}扩展", state.Id);
+        country.AddState(state);
+        _occupiedStates.Add(state);
         return true;
     }
 
     private ValueEnumerable<
-        Select<OrderBySkipTake<Where<FromEnumerable<StateInfo>, StateInfo>, StateInfo, int>, StateInfo, int>,
-        int
-    > GetRandomInitialStateId()
+        Select<
+            OrderBySkipTake<Where<FromEnumerable<StateInfo>, StateInfo>, StateInfo, int>,
+            StateInfo,
+            StateInfo
+        >,
+        StateInfo
+    > GetRandomInitialState()
     {
         return _stateInfoManager
             .States.AsValueEnumerable()
-            .Where(s => !s.IsImpassable && !OccupiedStates.Contains(s.Id))
+            .Where(s => !s.IsImpassable && !_occupiedStates.Contains(s))
             .OrderBy(_ => _random.Next())
             .Take(_countriesCount)
             .Select(s =>
             {
-                _occupiedStates.Add(s.Id);
-                return s.Id;
+                //TODO: 优化
+                _occupiedStates.Add(s);
+                return s;
             });
     }
 
-    private int GetIdOfBestState(IReadOnlyCollection<int> candidates, CountryInfo[] countries)
+    private StateInfo? GetIdOfBestState(IReadOnlyCollection<StateInfo> candidates, CountryInfo[] countries)
     {
-        var validCandidates = candidates.Where(id => !OccupiedStates.Contains(id)).ToList();
+        var validCandidates = candidates.Where(id => !_occupiedStates.Contains(id)).ToList();
         if (validCandidates.Count == 0)
         {
-            return -1;
+            return null;
         }
 
         var scores = candidates
             .AsValueEnumerable()
-            .Select(id => new
+            .Select(stateInfo => new
             {
-                Id = id,
-                _stateInfoManager.GetStateInfo(id).Value,
-                Dispersion = CalculateDispersion(id, countries),
-                TypeMatch = CalculateTypeMatch(id, countries),
+                State = stateInfo,
+                Dispersion = CalculateDispersion(stateInfo, countries),
+                TypeMatch = CalculateTypeMatch(stateInfo, countries),
             })
             .ToArray();
 
         var maxValues = new
         {
-            Value = scores.Max(s => s.Value),
+            Value = scores.Max(s => s.State.Value),
             Dispersion = scores.Max(s => s.Dispersion),
             TypeMatch = scores.Max(s => s.TypeMatch),
         };
 
         return scores
             .AsValueEnumerable()
-            .Select(s => new
+            .Select(stateInfo => new
             {
-                s.Id,
-                Score = 0.5 * (s.Value / maxValues.Value)
-                    + 0.3 * (s.Dispersion / maxValues.Dispersion)
-                    + 0.2 * (s.TypeMatch / maxValues.TypeMatch),
+                StateInfo = stateInfo,
+                Score = 0.5 * (stateInfo.State.Value / maxValues.Value)
+                    + 0.3 * (stateInfo.Dispersion / maxValues.Dispersion)
+                    + 0.2 * (stateInfo.TypeMatch / maxValues.TypeMatch)
             })
             .OrderByDescending(s => s.Score)
             .First()
-            .Id;
+            .StateInfo.State;
     }
 
-    private double CalculateDispersion(int id, CountryInfo[] countries)
+    private double CalculateDispersion(StateInfo state, CountryInfo[] countries)
     {
         int sumDistance = countries
             .AsValueEnumerable()
-            .Where(c => c.Id != id)
-            .Sum(c => ShortestPathLengthBfs(id, c.Id));
+            .Where(c => c.InitialId != state.Id)
+            .Sum(c => ShortestPathLengthBfs(state, c.InitialId));
 
         return (double)sumDistance / (countries.Length - 1);
     }
 
-    private double CalculateTypeMatch(int id, CountryInfo[] countries)
+    private static double CalculateTypeMatch(StateInfo state, CountryInfo[] countries)
     {
-        var targetType = _stateInfoManager.GetStateInfo(id).Type;
+        var targetType = state.Type;
         return countries
             .AsValueEnumerable()
-            .Where(c => c.GetPassableBorder().Contains(id))
+            .Where(c => c.GetPassableBorder().Contains(state))
             .Average(countryMap => countryMap.Type.EqualsForType(targetType) ? 1 : 0);
     }
 
-    private int ShortestPathLengthBfs(int start, int end)
+    private int ShortestPathLengthBfs(StateInfo startState, int endStateId)
     {
-        if (_pathCache.TryGetValue((start, end), out int cached))
+        if (_pathCache.TryGetValue((startState, endStateId), out int cached))
         {
             return cached;
         }
 
         var visited = new HashSet<int>();
-        var queue = new Queue<(int, int)>();
-        queue.Enqueue((start, 0));
+        var queue = new Queue<(StateInfo, int distance)>();
+        queue.Enqueue((startState, 0));
         while (queue.Count > 0)
         {
-            var (currentStateId, distance) = queue.Dequeue();
-            if (currentStateId == end)
+            var (currentState, distance) = queue.Dequeue();
+            if (currentState.Id == endStateId)
             {
-                _pathCache[(start, end)] = distance;
+                _pathCache[(startState, endStateId)] = distance;
                 return distance;
             }
-            if (!visited.Add(currentStateId))
+            if (!visited.Add(currentState.Id))
             {
                 continue;
             }
 
             foreach (
-                int edge in _stateInfoManager
-                    .GetStateInfo(currentStateId)
+                var edgeState in currentState
                     .Edges.AsValueEnumerable()
-                    .Where(edgeStateId =>
-                        !_stateInfoManager.GetStateInfo(edgeStateId).IsImpassable
-                        && !visited.Contains(edgeStateId)
-                    )
+                    .Where(state => !state.IsImpassable && !visited.Contains(state.Id))
             )
             {
-                queue.Enqueue((edge, distance + 1));
+                queue.Enqueue((edgeState, distance + 1));
             }
         }
-        _pathCache[(start, end)] = -1;
+        _pathCache[(startState, endStateId)] = -1;
         return -1;
     }
 
@@ -260,9 +264,8 @@ public sealed class MapGenerator
                 continue;
             }
 
-            foreach (int stateId in country.StatesId)
+            foreach (var state in country.States)
             {
-                var state = _stateInfoManager.GetStateInfo(stateId);
                 if (state.IsImpassable)
                 {
                     continue;

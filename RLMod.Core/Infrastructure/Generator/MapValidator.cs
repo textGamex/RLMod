@@ -34,7 +34,7 @@ public static class Validator
         {
             var visited = new HashSet<int>();
             var queue = new Queue<int>();
-            queue.Enqueue(country.Id);
+            queue.Enqueue(country.InitialId);
 
             while (queue.Count > 0)
             {
@@ -45,14 +45,14 @@ public static class Validator
                 }
 
                 foreach (
-                    int edge in stateMap[current]
+                    var edgeState in stateMap[current]
                         .Edges.AsValueEnumerable()
-                        .Where(edge => country.ContainsState(edge) || stateMap[edge].IsImpassable)
+                        .Where(state => country.ContainsState(state) || state.IsImpassable)
                 )
                 {
-                    if (!visited.Contains(edge))
+                    if (!visited.Contains(edgeState.Id))
                     {
-                        queue.Enqueue(edge);
+                        queue.Enqueue(edgeState.Id);
                     }
                 }
             }

@@ -6,16 +6,17 @@ using RLMod.Core.Services;
 
 namespace RLMod.Core.Infrastructure.Generator;
 
-public sealed class StateInfo
+public sealed class StateInfo : IEquatable<StateInfo>
 {
+    public int Id => State.Id;
+    public State State { get; }
     public int Factories { get; set; }
     public int Resources { get; set; }
-    public IEnumerable<int> Edges => _adjacent;
+    public IEnumerable<StateInfo> Edges => _adjacent;
     public StateType Type { get; }
     public bool IsImpassable { get; }
     public int MaxFactories { get; }
     public int TotalVictoryPoint { get; }
-    public int Id => _state.Id;
 
     /// <summary>
     /// 计算获取省份的价值。
@@ -43,8 +44,7 @@ public sealed class StateInfo
                 * AppSettingService.StateGenerate.VictoryPointWeight;
     }
 
-    private readonly State _state;
-    private readonly int[] _adjacent;
+    private StateInfo[] _adjacent = [];
     private readonly MersenneTwister _random;
 
     private static readonly StateCategoryService StateCategoryService =
@@ -52,18 +52,16 @@ public sealed class StateInfo
     private static readonly AppSettingService AppSettingService =
         App.Current.Services.GetRequiredService<AppSettingService>();
 
-    public StateInfo(State state, int[] adjacent, StateType type)
+    public StateInfo(State state, StateType type)
     {
         _random = RandomHelper.GetRandomWithSeed();
 
-        _state = state;
-        _adjacent = adjacent;
+        State = state;
         Type = type;
         IsImpassable = state.IsImpassable;
         TotalVictoryPoint = state.VictoryPoints.Sum(point => point.Value);
 
         int maxFactoriesLimit = AppSettingService.StateGenerate.MaxFactoryNumber;
-        int resourcesLimit = AppSettingService.StateGenerate.MaxResourceNumber;
 
         switch (Type)
         {
@@ -87,6 +85,8 @@ public sealed class StateInfo
                 );
                 break;
         }
+
+        int resourcesLimit = AppSettingService.StateGenerate.MaxResourceNumber;
         switch (type)
         {
             case StateType.Industrial:
@@ -100,6 +100,11 @@ public sealed class StateInfo
                 GenerateBalancedProperties(MaxFactories, resourcesLimit);
                 break;
         }
+    }
+
+    public void SetAdjacent(StateInfo[] adjacent)
+    {
+        _adjacent = adjacent;
     }
 
     private int GetRandomBuildingSlots(int minSlots, int maxSlots)
@@ -143,5 +148,40 @@ public sealed class StateInfo
             Resources = (int)(resourceStandard + _random.Next(-25, 26));
             Resources = Math.Max(0, Math.Min(maxResources, Resources));
         }
+    }
+
+    public override bool Equals(object? obj)
+    {
+        return ReferenceEquals(this, obj) || obj is StateInfo other && Equals(other);
+    }
+
+    public bool Equals(StateInfo? other)
+    {
+        if (other is null)
+        {
+            return false;
+        }
+
+        if (ReferenceEquals(this, other))
+        {
+            return true;
+        }
+
+        return Id == other.Id;
+    }
+
+    public static bool operator ==(StateInfo? left, StateInfo? right)
+    {
+        return Equals(left, right);
+    }
+
+    public static bool operator !=(StateInfo? left, StateInfo? right)
+    {
+        return !Equals(left, right);
+    }
+
+    public override int GetHashCode()
+    {
+        return Id;
     }
 }

@@ -1,4 +1,4 @@
-﻿using ZLinq;
+﻿using NLog;
 
 namespace RLMod.Core.Infrastructure.Generator;
 
@@ -6,26 +6,20 @@ public sealed class CountryInfo
 {
     public string Tag { get; }
     public CountryType Type { get; private set; }
-    public int Id { get; }
+    public int InitialId { get; }
 
-    public IEnumerable<int> StatesId => _statesId;
+    public IEnumerable<StateInfo> States => _states;
 
-    public static StateInfoManager StateInfoManager { get; private set; } = null!;
+    private readonly HashSet<StateInfo> _states = [];
+    private readonly HashSet<StateInfo> _borders = [];
 
-    private readonly HashSet<int> _statesId = [];
-    private readonly HashSet<int> _border = [];
+    private static readonly Logger Log = LogManager.GetCurrentClassLogger();
 
-    // TODO: _statesId 是否应该替换为 StateInfo 类?
-    public CountryInfo(int initialStateId, string tag)
+    public CountryInfo(StateInfo initialState, string tag)
     {
         Tag = tag;
-        Id = initialStateId;
-        AddState(initialStateId);
-    }
-
-    public static void SetStateInfoManager(StateInfoManager stateInfoManager)
-    {
-        StateInfoManager = stateInfoManager;
+        InitialId = initialState.Id;
+        AddState(initialState);
     }
 
     /// <summary>
@@ -34,49 +28,50 @@ public sealed class CountryInfo
     /// <returns>国家的价值</returns>
     public double GetValue()
     {
-        return _statesId.Sum(id => StateInfoManager.GetStateInfo(id).Value);
+        return _states.Sum(state => state.Value);
     }
 
-    public IReadOnlyCollection<int> GetPassableBorder()
+    public IReadOnlyCollection<StateInfo> GetPassableBorder()
     {
-        return _border.Where(id => !StateInfoManager.GetStateInfo(id).IsImpassable).ToArray();
+        return _borders.Where(state => !state.IsImpassable).ToArray();
     }
 
-    public int StateCount => _statesId.Count;
+    public int StateCount => _states.Count;
 
-    public bool ContainsState(int id) => _statesId.Contains(id);
+    public bool ContainsState(StateInfo state) => _states.Contains(state);
 
-    public void AddState(int id)
+    public void AddState(StateInfo state)
     {
-        _statesId.Add(id);
-        UpdateBorders(id);
+        _states.Add(state);
+        UpdateBorders(state);
         UpdateCountryType();
     }
 
-    private void UpdateBorders(int addedStateId)
+    private void UpdateBorders(StateInfo addedState)
     {
-        Console.WriteLine($"更新{Id}的接壤省份", Id);
-        foreach (
-            int edge in StateInfoManager
-                .GetStateInfo(addedStateId)
-                .Edges.AsValueEnumerable()
-                .Where(edge => !_statesId.Contains(edge) && !MapGenerator.OccupiedStates.Contains(edge))
-        )
+        Log.Debug("更新{InitialId}的接壤省份", InitialId);
+        foreach (var edgeState in addedState.Edges)
         {
-            _border.Add(edge);
+            if (_states.Contains(edgeState) || MapGenerator.OccupiedStates.Contains(edgeState))
+            {
+                continue;
+            }
+            _borders.Add(edgeState);
         }
 
-        _border.Remove(addedStateId);
-        foreach (int edge in _border.Where(e => MapGenerator.OccupiedStates.Contains(e)))
+        _borders.Remove(addedState);
+        foreach (
+            var edgeState in _borders.Where(stateInfo => MapGenerator.OccupiedStates.Contains(stateInfo))
+        )
         {
-            _border.Remove(edge);
+            _borders.Remove(edgeState);
         }
     }
 
     private void UpdateCountryType()
     {
-        var typeGroups = _statesId
-            .Select(stateId => StateInfoManager.GetStateInfo(stateId).Type)
+        var typeGroups = _states
+            .Select(stateId => stateId.Type)
             .GroupBy(type => type)
             .ToDictionary(g => g.Key, g => g.Count());
 

@@ -40,19 +40,19 @@ public sealed partial class MainWindowViewModel(AppSettingService settingService
     {
         string stateFolder = Path.Combine(GameRootPath, "history", "states");
         var states = GetStates(stateFolder);
-        // var generator = new MapGenerator(states);
+        var generator = new MapGenerator(states);
 
         if (!ProvinceParser.TryParse(GameRootPath, out var provinces))
         {
             throw new ArgumentException($"Could not parse province file");
         }
 
-        var manager = new StateInfoManager(states, provinces);
-        foreach (var managerState in manager.States.Take(100))
-        {
-            Log.Debug("State Id: {Id}, 相邻: {Array}", managerState.Id, managerState.Edges);
-        }
-        // var countries = generator.GenerateRandomCountry();
+        // var manager = new StateInfoManager(states, provinces);
+        // foreach (var managerState in manager.States.Take(100))
+        // {
+        //     Log.Debug("State Id: {Id}, 相邻: {Array}", managerState.Id, managerState.Edges);
+        // }
+        var countries = generator.GenerateRandomCountry();
     }
 
     private List<State> GetStates(string stateFolder)

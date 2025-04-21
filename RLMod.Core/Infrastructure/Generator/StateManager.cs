@@ -1,64 +1,63 @@
-﻿using System.Collections.Frozen;
-using MathNet.Numerics.Random;
-using MethodTimer;
-using Microsoft.Extensions.DependencyInjection;
+﻿using MethodTimer;
 using RLMod.Core.Helpers;
 using RLMod.Core.Infrastructure.Parser;
 using RLMod.Core.Models.Map;
-using RLMod.Core.Services;
 
 namespace RLMod.Core.Infrastructure.Generator;
 
 public sealed class StateInfoManager
 {
-    public IEnumerable<StateInfo> States => _stateInfos.Values;
-    public int PassableStateCount => _stateInfos.Values.Count(stateInfo => !stateInfo.IsImpassable);
+    public IEnumerable<StateInfo> States => _stateInfos;
+    public int PassableStateCount => _stateInfos.Count(stateInfo => !stateInfo.IsImpassable);
 
-    private readonly FrozenDictionary<int, StateInfo> _stateInfos;
+    private readonly StateInfo[] _stateInfos;
 
     [Time]
     public StateInfoManager(IReadOnlyList<State> states, IReadOnlyDictionary<int, Province> provinces)
     {
-        // var provinceService = App.Current.Services.GetRequiredService<ProvinceService>();
-        // var oceanProvinces = provinceService.GetOceanProvinces(provinces);
-        var stateInfos = new Dictionary<int, StateInfo>(states.Count);
-        var stateAdjacentMap = new Dictionary<int, List<int>>(states.Count);
-
-        for (int i = 0; i < states.Count; i++)
-        {
-            var state = states[i];
-            for (int j = i + 1; j < states.Count; j++)
-            {
-                var otherState = states[j];
-                LookupStateAdjacencies(state, otherState, provinces, stateAdjacentMap);
-            }
-        }
+        var stateInfos = new List<StateInfo>(states.Count);
+        var stateAdjacentMap = new Dictionary<int, List<StateInfo>>(states.Count);
 
         var random = RandomHelper.GetRandomWithSeed();
         var stateTypes = random.GetItems(Enum.GetValues<StateType>(), states.Count);
         for (int i = 0; i < states.Count; i++)
         {
             var state = states[i];
-            stateInfos[state.Id] = new StateInfo(
-                state,
-                stateAdjacentMap.TryGetValue(state.Id, out var ints) ? ints.ToArray() : [],
-                stateTypes[i]
-            );
+            stateInfos.Add(new StateInfo(state, stateTypes[i]));
         }
 
-        _stateInfos = stateInfos.ToFrozenDictionary();
+        // 查找相邻的State
+        for (int i = 0; i < stateInfos.Count; i++)
+        {
+            var state = stateInfos[i];
+            for (int j = i + 1; j < stateInfos.Count; j++)
+            {
+                var otherState = stateInfos[j];
+                LookupStateAdjacencies(state, otherState, provinces, stateAdjacentMap);
+            }
+        }
+
+        foreach (var stateInfo in stateInfos)
+        {
+            if (stateAdjacentMap.TryGetValue(stateInfo.Id, out var value))
+            {
+                stateInfo.SetAdjacent(value.ToArray());
+            }
+        }
+
+        _stateInfos = stateInfos.ToArray();
     }
 
     private void LookupStateAdjacencies(
-        State state,
-        State otherState,
+        StateInfo stateInfo,
+        StateInfo otherStateInfo,
         IReadOnlyDictionary<int, Province> provinces,
-        Dictionary<int, List<int>> stateAdjacentMap
+        Dictionary<int, List<StateInfo>> stateAdjacentMap
     )
     {
-        foreach (int provinceId in state.Provinces)
+        foreach (int provinceId in stateInfo.State.Provinces)
         {
-            foreach (int otherStateProvinceId in otherState.Provinces)
+            foreach (int otherStateProvinceId in otherStateInfo.State.Provinces)
             {
                 if (
                     !provinces.TryGetValue(otherStateProvinceId, out var otherStateProvince)
@@ -68,26 +67,21 @@ public sealed class StateInfoManager
                     continue;
                 }
 
-                if (!stateAdjacentMap.TryGetValue(state.Id, out var adjacentList))
+                if (!stateAdjacentMap.TryGetValue(stateInfo.Id, out var adjacentList))
                 {
-                    adjacentList = new List<int>(4);
-                    stateAdjacentMap[state.Id] = adjacentList;
+                    adjacentList = new List<StateInfo>(4);
+                    stateAdjacentMap[stateInfo.Id] = adjacentList;
                 }
-                adjacentList.Add(otherState.Id);
+                adjacentList.Add(otherStateInfo);
 
-                if (!stateAdjacentMap.TryGetValue(otherState.Id, out var otherStateAdjacentList))
+                if (!stateAdjacentMap.TryGetValue(otherStateInfo.Id, out var otherStateAdjacentList))
                 {
-                    otherStateAdjacentList = new List<int>(4);
-                    stateAdjacentMap[otherState.Id] = otherStateAdjacentList;
+                    otherStateAdjacentList = new List<StateInfo>(4);
+                    stateAdjacentMap[otherStateInfo.Id] = otherStateAdjacentList;
                 }
-                otherStateAdjacentList.Add(state.Id);
+                otherStateAdjacentList.Add(stateInfo);
                 return;
             }
         }
-    }
-
-    public StateInfo GetStateInfo(int stateId)
-    {
-        return _stateInfos[stateId];
     }
 }
