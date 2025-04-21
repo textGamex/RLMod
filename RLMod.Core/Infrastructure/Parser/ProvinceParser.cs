@@ -12,9 +12,20 @@ public sealed class ProvinceParser
 {
     private static readonly Logger Log = LogManager.GetCurrentClassLogger();
 
-    public static bool TryParse(
+    public static bool TryParse(string gameRootPath, out IReadOnlyDictionary<int, Province> provinces)
+    {
+        return TryParse(
+            Path.Combine(gameRootPath, "map", "provinces.bmp"),
+            Path.Combine(gameRootPath, "map", "definition.csv"),
+            Path.Combine(gameRootPath, "map", "adjacencies.csv"),
+            out provinces
+        );
+    }
+
+    private static bool TryParse(
         string provincesFilePath,
         string definitionFilePath,
+        string adjacenciesFilePath,
         out IReadOnlyDictionary<int, Province> provinces
     )
     {
@@ -30,6 +41,7 @@ public sealed class ProvinceParser
 
             ParseProvinceScv(csvLines, provincesMap, colorToProvinceId);
             ParseProvinceBmp(provincesFilePath, provincesMap, colorToProvinceId);
+            ParseAdjacenciesFile(adjacenciesFilePath, provincesMap);
 
             Log.Info("Province parser finish.");
             provinces = provincesMap;
@@ -40,6 +52,36 @@ public sealed class ProvinceParser
             Log.Error(e, "解析 Province 文件失败");
             provinces = new Dictionary<int, Province>();
             return false;
+        }
+    }
+
+    private static void ParseAdjacenciesFile(
+        string adjacenciesFilePath,
+        Dictionary<int, Province> provincesMap
+    )
+    {
+        foreach (string line in File.ReadAllLines(adjacenciesFilePath))
+        {
+            string[] fields = line.Split(';');
+            if (fields.Length < 2)
+            {
+                continue;
+            }
+
+            if (
+                int.TryParse(fields[0], out int fromProvinceId)
+                && int.TryParse(fields[1], out int toProvinceId)
+            )
+            {
+                if (provincesMap.TryGetValue(fromProvinceId, out var fromProvince))
+                {
+                    fromProvince.Adjacencies.Add(toProvinceId);
+                }
+                if (provincesMap.TryGetValue(toProvinceId, out var toProvince))
+                {
+                    toProvince.Adjacencies.Add(fromProvinceId);
+                }
+            }
         }
     }
 

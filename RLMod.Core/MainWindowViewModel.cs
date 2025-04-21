@@ -41,12 +41,10 @@ public sealed partial class MainWindowViewModel(AppSettingService settingService
         string stateFolder = Path.Combine(GameRootPath, "history", "states");
         var states = GetStates(stateFolder);
         // var generator = new MapGenerator(states);
-        string provinceFilePath = Path.Combine(GameRootPath, "map", "provinces.bmp");
-        string definitionFilePath = Path.Combine(GameRootPath, "map", "definition.csv");
 
-        if (!ProvinceParser.TryParse(provinceFilePath, definitionFilePath, out var provinces))
+        if (!ProvinceParser.TryParse(GameRootPath, out var provinces))
         {
-            throw new ArgumentException($"Could not parse province file: {provinceFilePath}");
+            throw new ArgumentException($"Could not parse province file");
         }
 
         var manager = new StateInfoManager(states, provinces);

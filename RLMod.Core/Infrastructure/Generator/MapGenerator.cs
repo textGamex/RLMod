@@ -41,12 +41,9 @@ public sealed class MapGenerator
         _valueMean = valueMean;
         _valueStdDev = valueStdDev;
 
-        string provinceFilePath = Path.Combine(_settings.GameRootFolderPath, "map", "provinces.bmp");
-        string definitionFilePath = Path.Combine(_settings.GameRootFolderPath, "map", "definition.csv");
-
-        if (!ProvinceParser.TryParse(provinceFilePath, definitionFilePath, out var provinces))
+        if (!ProvinceParser.TryParse(_settings.GameRootFolderPath, out var provinces))
         {
-            throw new ArgumentException($"Could not parse province file: {provinceFilePath}");
+            throw new ArgumentException($"Could not parse province file");
         }
 
         _stateInfoManager = new StateInfoManager(states, provinces);
