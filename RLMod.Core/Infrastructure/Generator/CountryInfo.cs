@@ -8,7 +8,7 @@ public sealed class CountryInfo
     public CountryType Type { get; private set; }
     public int InitialId { get; }
 
-    public IEnumerable<StateInfo> States => _states;
+    public IReadOnlyCollection<StateInfo> States => _states;
 
     private readonly HashSet<StateInfo> _states = [];
     private readonly HashSet<StateInfo> _borders = [];
@@ -35,8 +35,6 @@ public sealed class CountryInfo
     {
         return _borders.Where(state => !state.IsImpassable).ToArray();
     }
-
-    public int StateCount => _states.Count;
 
     public bool ContainsState(StateInfo state) => _states.Contains(state);
 

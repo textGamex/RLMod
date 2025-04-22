@@ -57,7 +57,7 @@ public static class Validator
                 }
             }
 
-            if (visited.Count != country.StateCount)
+            if (visited.Count != country.States.Count)
             {
                 return false;
             }
