@@ -9,6 +9,7 @@ namespace RLMod.Core.Infrastructure.Generator;
 public sealed class StateInfo : IEquatable<StateInfo>
 {
     public int Id => State.Id;
+    public string Owner { get; set; } = string.Empty;
     public State State { get; }
     public int Factories { get; set; }
     public int Resources { get; set; }

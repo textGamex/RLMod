@@ -1,4 +1,5 @@
-﻿using NLog;
+﻿using System.Diagnostics;
+using NLog;
 
 namespace RLMod.Core.Infrastructure.Generator;
 
@@ -49,6 +50,10 @@ public sealed class CountryInfo
 
     public void AddState(StateInfo state)
     {
+        Debug.Assert(!string.IsNullOrWhiteSpace(Tag));
+        Debug.Assert(!_states.Contains(state));
+
+        state.Owner = Tag;
         _states.Add(state);
         UpdateBorders(state);
         UpdateCountryType();

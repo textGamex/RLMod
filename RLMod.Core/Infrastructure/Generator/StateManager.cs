@@ -43,6 +43,7 @@ public sealed class StateInfoManager
         {
             if (stateAdjacentMap.TryGetValue(stateInfo.Id, out var value))
             {
+                //TODO: 是否应该移除这个 ToArray?
                 stateInfo.SetAdjacent(value.ToArray());
             }
         }
