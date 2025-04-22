@@ -9,6 +9,8 @@ public sealed class StateInfoManager
 {
     public IEnumerable<StateInfo> States => _stateInfos;
     public int PassableStateCount => _stateInfos.Count(stateInfo => !stateInfo.IsImpassable);
+    public int PassableLandStateCount =>
+        _stateInfos.Count(stateInfo => !stateInfo.IsImpassable && !stateInfo.IsOcean);
 
     private readonly StateInfo[] _stateInfos;
 

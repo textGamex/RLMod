@@ -15,6 +15,7 @@ public sealed class StateInfo : IEquatable<StateInfo>
     public IEnumerable<StateInfo> Edges => _adjacent;
     public StateType Type { get; }
     public bool IsImpassable { get; }
+    public bool IsOcean { get; }
     public int MaxFactories { get; }
     public int TotalVictoryPoint { get; }
 
@@ -22,7 +23,7 @@ public sealed class StateInfo : IEquatable<StateInfo>
     /// 计算获取省份的价值。
     /// </summary>
     /// <returns>省份的价值</returns>
-    public double Value => IsImpassable ? 0 : GetValue();
+    public double Value => IsImpassable || IsOcean ? 0 : GetValue();
 
     private double GetValue()
     {

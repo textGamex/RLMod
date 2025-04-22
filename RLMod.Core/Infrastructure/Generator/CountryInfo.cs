@@ -31,9 +31,18 @@ public sealed class CountryInfo
         return _states.Sum(state => state.Value);
     }
 
+    /// <summary>
+    /// 获取非不可通行（IsImpassable）的相邻省份（State）。
+    /// </summary>
+    /// <returns>相邻省份（State）</returns>
     public IReadOnlyCollection<StateInfo> GetPassableBorder()
     {
         return _borders.Where(state => !state.IsImpassable).ToArray();
+    }
+
+    public IReadOnlyCollection<StateInfo> GetPassableLandBorder()
+    {
+        return _borders.Where(state => state is { IsImpassable: false, IsOcean: false }).ToArray();
     }
 
     public bool ContainsState(StateInfo state) => _states.Contains(state);

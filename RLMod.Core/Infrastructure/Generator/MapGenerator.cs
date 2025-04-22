@@ -33,6 +33,14 @@ public sealed class MapGenerator
 
     private static readonly Logger Log = LogManager.GetCurrentClassLogger();
 
+    /// <summary>
+    /// MapGenerator 构造函数，用以初始化地图生成器。
+    /// </summary>
+    /// <param name="states">基础省份（State）地图</param>
+    /// <param name="countriesCount">目标国家数量，默认为 MapSettings.MaxCountry</param>
+    /// <param name="valueMean">正态分布均值（μ），默认为 5000</param>
+    /// <param name="valueStdDev">正态分布标准差（σ），默认为 1000</param>
+    /// <exception cref="ArgumentException">参数错误</exception>
     public MapGenerator(
         IReadOnlyList<State> states,
         int countriesCount = MapSettings.MaxCountry,
@@ -53,27 +61,35 @@ public sealed class MapGenerator
 
         _stateInfoManager = new StateInfoManager(states, provinces);
         _random = RandomHelper.GetRandomWithSeed();
-        ValidateStateCount();
+        ValidateStateCountCheck();
     }
 
-    private void ValidateStateCount()
+    /// <summary>
+    /// 计算国家（Country）数量是否合理。
+    /// </summary>
+    /// <exception cref="ArgumentException">国家（Country）数量非法</exception>
+    private void ValidateStateCountCheck()
     {
-        int passableStateCount = _stateInfoManager.PassableStateCount;
-        if (passableStateCount < _countriesCount)
+        int passableLandStateCount = _stateInfoManager.PassableLandStateCount;
+        if (passableLandStateCount < _countriesCount)
         {
             throw new ArgumentException(
-                $"无法生成 {_countriesCount} 个国家，非海洋省份只有 {passableStateCount} 个。请确保：(非海洋省份数量) ≥ (目标国家数量)"
+                $"无法生成 {_countriesCount} 个国家，陆地可通行省份只有 {passableLandStateCount} 个。请确保：(陆地可通行省份数量) ≥ (目标国家数量)"
             );
         }
     }
 
+    /// <summary>
+    /// 随机分配国家（Country）。
+    /// </summary>
+    /// <returns>国家（Country）列表</returns>
     [Time]
     public IReadOnlyCollection<CountryInfo> GenerateRandomCountry()
     {
-        Log.Info("选择初始位置...");
+        Log.Info("获取国家标签（Country Tag）表...");
 
         var countryTags = _countryTagService.GetCountryTags().ToList();
-
+        Log.Info("为国家（Country）选择初始位置...");
         var countries = GetRandomInitialState()
             .Select(initialState =>
             {
@@ -85,7 +101,7 @@ public sealed class MapGenerator
             .ToArray();
 
         Log.Info("初始位置分配完毕...");
-
+        Log.Info("开始扩展...");
         bool isChange;
         do
         {
@@ -93,11 +109,12 @@ public sealed class MapGenerator
 
             foreach (var country in countries)
             {
-                Log.Debug("尝试扩展...{Id}", country.InitialId);
+                Log.Debug("尝试为国家：{Id}扩展...", country.InitialId);
+                // 获取可通行省份， 包括海洋省份
                 var passableBorder = country.GetPassableBorder();
                 if (passableBorder.Count <= 0)
                 {
-                    Log.Debug("无法扩展");
+                    Log.Debug("没有可扩展方向，无法扩展...");
                     continue;
                 }
 
@@ -111,6 +128,13 @@ public sealed class MapGenerator
         return countries;
     }
 
+    /// <summary>
+    /// 尝试扩展国家（Country）。
+    /// </summary>
+    /// <param name="country">被扩展的国家（Country）</param>
+    /// <param name="candidates">候选省份（State）</param>
+    /// <param name="countries">国家（country）表</param>
+    /// <returns>是否扩展成功</returns>
     private bool ExpandCountry(
         CountryInfo country,
         IReadOnlyCollection<StateInfo> candidates,
@@ -129,6 +153,10 @@ public sealed class MapGenerator
         return true;
     }
 
+    /// <summary>
+    /// 为国家（Country）选择初始省份（State）。
+    /// </summary>
+    /// <returns>初始省份（State）</returns>
     private ValueEnumerable<
         Select<
             OrderBySkipTake<Where<FromEnumerable<StateInfo>, StateInfo>, StateInfo, int>,
@@ -138,9 +166,10 @@ public sealed class MapGenerator
         StateInfo
     > GetRandomInitialState()
     {
+        // 从陆地可通行省份中选取
         return _stateInfoManager
             .States.AsValueEnumerable()
-            .Where(s => !s.IsImpassable && !_occupiedStates.Contains(s))
+            .Where(s => !s.IsImpassable && !s.IsOcean && !_occupiedStates.Contains(s))
             .OrderBy(_ => _random.Next())
             .Take(_countriesCount)
             .Select(s =>
@@ -151,14 +180,21 @@ public sealed class MapGenerator
             });
     }
 
+    /// <summary>
+    /// 获取最优扩展的省份（State）。
+    /// </summary>
+    /// <param name="candidates">候选省份（State）</param>
+    /// <param name="countries">国家（Country）表</param>
+    /// <returns>最优省份（State）</returns>
     private StateInfo? GetIdOfBestState(IReadOnlyCollection<StateInfo> candidates, CountryInfo[] countries)
     {
+        // 获取非海洋候选省份，如无则选择失败
         var validCandidates = candidates.Where(id => !_occupiedStates.Contains(id)).ToList();
         if (validCandidates.Count == 0)
         {
             return null;
         }
-
+        // 评估得分
         var scores = candidates
             .AsValueEnumerable()
             .Select(stateInfo => new
@@ -183,31 +219,57 @@ public sealed class MapGenerator
                 StateInfo = stateInfo,
                 Score = 0.5 * (stateInfo.State.Value / maxValues.Value)
                     + 0.3 * (stateInfo.Dispersion / maxValues.Dispersion)
-                    + 0.2 * (stateInfo.TypeMatch / maxValues.TypeMatch)
+                    + 0.2 * (stateInfo.TypeMatch / maxValues.TypeMatch),
             })
             .OrderByDescending(s => s.Score)
             .First()
             .StateInfo.State;
     }
 
+    /// <summary>
+    /// 计算省份（State）之间的距离分布
+    /// </summary>
+    /// <param name="state">目标省份（State）</param>
+    /// <param name="countries">国家（Country）表</param>
+    /// <returns></returns>
     private double CalculateDispersion(StateInfo state, CountryInfo[] countries)
     {
+        // 计算其他国家非初始省份的距离和
         int sumDistance = countries
             .AsValueEnumerable()
             .Where(c => c.InitialId != state.Id)
             .Sum(c => ShortestPathLengthBfs(state, c.InitialId));
-
+        // 返回平均值
         return (double)sumDistance / (countries.Length - 1);
     }
 
+    /// <summary>
+    /// 计算省份（State）类型匹配度
+    /// </summary>
+    /// <param name="state">目标省份（State）</param>
+    /// <param name="countries">国家（Country）表</param>
+    /// <returns></returns>
     private static double CalculateTypeMatch(StateInfo state, CountryInfo[] countries)
     {
+        //计算国家相邻省份类型相同平均值
         var targetType = state.Type;
         return countries
             .AsValueEnumerable()
             .Where(c => c.GetPassableBorder().Contains(state))
             .Average(countryMap => countryMap.Type.EqualsForType(targetType) ? 1 : 0);
     }
+
+    // private void ShortestPathLengthJohnson() { }
+    //
+    // private int ShortestPathLengthDijkstra(StateInfo startState, int endStateId)
+    // {
+    //     if (_pathCache.TryGetValue((startState, endStateId), out int cached))
+    //     {
+    //         return cached;
+    //     }
+    //     var visited = new HashSet<int>();
+    //     
+    // }
 
     private int ShortestPathLengthBfs(StateInfo startState, int endStateId)
     {
