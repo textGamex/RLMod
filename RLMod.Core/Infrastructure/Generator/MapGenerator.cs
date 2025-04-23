@@ -141,7 +141,7 @@ public sealed class MapGenerator
         CountryInfo[] countries
     )
     {
-        var state = GetIdOfBestState(candidates, countries);
+        var state = GetBestState(candidates, countries);
         if (state is null)
         {
             return false;
@@ -186,7 +186,7 @@ public sealed class MapGenerator
     /// <param name="candidates">候选省份（State）</param>
     /// <param name="countries">国家（Country）表</param>
     /// <returns>最优省份（State）</returns>
-    private StateInfo? GetIdOfBestState(IReadOnlyCollection<StateInfo> candidates, CountryInfo[] countries)
+    private StateInfo? GetBestState(IReadOnlyCollection<StateInfo> candidates, CountryInfo[] countries)
     {
         // 获取非海洋候选省份，如无则选择失败
         var validCandidates = candidates.Where(id => !_occupiedStates.Contains(id)).ToList();
@@ -200,8 +200,8 @@ public sealed class MapGenerator
             .Select(stateInfo => new
             {
                 State = stateInfo,
-                Dispersion = CalculateDispersion(stateInfo, countries),
-                TypeMatch = CalculateTypeMatch(stateInfo, countries),
+                Dispersion = GetStateDispersion(stateInfo, countries),
+                TypeMatch = GetStateTypeMatch(stateInfo, countries),
             })
             .ToArray();
 
@@ -232,7 +232,7 @@ public sealed class MapGenerator
     /// <param name="state">目标省份（State）</param>
     /// <param name="countries">国家（Country）表</param>
     /// <returns></returns>
-    private double CalculateDispersion(StateInfo state, CountryInfo[] countries)
+    private double GetStateDispersion(StateInfo state, CountryInfo[] countries)
     {
         // 计算其他国家非初始省份的距离和
         int sumDistance = countries
@@ -249,7 +249,7 @@ public sealed class MapGenerator
     /// <param name="state">目标省份（State）</param>
     /// <param name="countries">国家（Country）表</param>
     /// <returns></returns>
-    private static double CalculateTypeMatch(StateInfo state, CountryInfo[] countries)
+    private static double GetStateTypeMatch(StateInfo state, CountryInfo[] countries)
     {
         //计算国家相邻省份类型相同平均值
         var targetType = state.Type;
