@@ -1,5 +1,4 @@
-﻿using System.Windows.Documents;
-using MathNet.Numerics.Distributions;
+﻿using MathNet.Numerics.Distributions;
 using MathNet.Numerics.Random;
 using MethodTimer;
 using Microsoft.Extensions.DependencyInjection;
@@ -170,7 +169,7 @@ public sealed class MapGenerator
         // 从陆地可通行省份中选取
         return _stateInfoManager
             .States.AsValueEnumerable()
-            .Where(s => !s.IsImpassable && !s.IsOcean && !_occupiedStates.Contains(s))
+            .Where(s => s.IsPassableLand && !_occupiedStates.Contains(s))
             .OrderBy(_ => _random.Next())
             .Take(_countriesCount)
             .Select(s =>
@@ -307,7 +306,7 @@ public sealed class MapGenerator
             foreach (
                 var edgeState in currentState
                     .Edges.AsValueEnumerable()
-                    .Where(state => !state.IsLand && !visited.Contains(state.Id))
+                    .Where(state => !state.IsPassableLand && !visited.Contains(state.Id))
             )
             {
                 int newDistance = distances[currentState.Id] + 1;
@@ -368,7 +367,7 @@ public sealed class MapGenerator
             foreach (
                 var edgeState in currentState
                     .Edges.AsValueEnumerable()
-                    .Where(state => !state.IsLand && !visited.Contains(state.Id))
+                    .Where(state => !state.IsPassableLand && !visited.Contains(state.Id))
             )
             {
                 queue.Enqueue((edgeState, distance + 1));
