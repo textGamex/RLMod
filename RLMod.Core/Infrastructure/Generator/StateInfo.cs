@@ -8,13 +8,14 @@ namespace RLMod.Core.Infrastructure.Generator;
 
 public sealed class StateInfo : IEquatable<StateInfo>
 {
-    public int Id => State.Id;
+    public int Id { get; }
     public string Owner { get; set; } = string.Empty;
     public State State { get; }
     public int Factories { get; set; }
     public int Resources { get; set; }
     public IEnumerable<StateInfo> Edges => _adjacent;
     public StateType Type { get; }
+    public StateCategory Category { get; }
     public bool IsImpassable { get; }
     public bool IsOcean { get; }
     public bool IsPassableLand => !IsImpassable && !IsOcean;
@@ -57,6 +58,7 @@ public sealed class StateInfo : IEquatable<StateInfo>
 
     public StateInfo(State state, StateType type)
     {
+        Id = state.Id;
         _random = RandomHelper.GetRandomWithSeed();
 
         State = state;
@@ -66,28 +68,27 @@ public sealed class StateInfo : IEquatable<StateInfo>
 
         int maxFactoriesLimit = AppSettingService.StateGenerate.MaxFactoryNumber;
 
+        int minFactories;
+        int maxFactories;
         switch (Type)
         {
             case StateType.Industrial:
-                MaxFactories = GetRandomBuildingSlots(
-                    (int)(0.70 * maxFactoriesLimit),
-                    (int)(1.0 * maxFactoriesLimit)
-                );
+                minFactories = (int)(0.70 * maxFactoriesLimit);
+                maxFactories = (int)(1.0 * maxFactoriesLimit);
                 break;
             case StateType.Resource:
-                MaxFactories = GetRandomBuildingSlots(
-                    (int)(0.1 * maxFactoriesLimit),
-                    (int)(0.3 * maxFactoriesLimit)
-                );
+                minFactories = (int)(0.1 * maxFactoriesLimit);
+                maxFactories = (int)(0.3 * maxFactoriesLimit);
                 break;
             case StateType.Balanced:
             default:
-                MaxFactories = GetRandomBuildingSlots(
-                    (int)(0.3 * maxFactoriesLimit),
-                    (int)(0.7 * maxFactoriesLimit)
-                );
+                minFactories = (int)(0.3 * maxFactoriesLimit);
+                maxFactories = (int)(0.7 * maxFactoriesLimit);
                 break;
         }
+
+        Category = GetRandomStateCategory(minFactories, maxFactories);
+        MaxFactories = Category.Slots;
 
         int resourcesLimit = AppSettingService.StateGenerate.MaxResourceNumber;
         switch (type)
@@ -110,14 +111,14 @@ public sealed class StateInfo : IEquatable<StateInfo>
         _adjacent = adjacent;
     }
 
-    private int GetRandomBuildingSlots(int minSlots, int maxSlots)
+    private StateCategory GetRandomStateCategory(int minSlots, int maxSlots)
     {
-        var slots = new List<int>(8);
+        var slots = new List<StateCategory>(8);
         foreach (var stateCategory in StateCategoryService.StateCategories)
         {
             if (stateCategory.Slots >= minSlots && stateCategory.Slots <= maxSlots)
             {
-                slots.Add(stateCategory.Slots);
+                slots.Add(stateCategory);
             }
         }
 
