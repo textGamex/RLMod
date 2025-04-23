@@ -1,4 +1,5 @@
-﻿using MathNet.Numerics.Distributions;
+﻿using System.Windows.Documents;
+using MathNet.Numerics.Distributions;
 using MathNet.Numerics.Random;
 using MethodTimer;
 using Microsoft.Extensions.DependencyInjection;
@@ -259,18 +260,88 @@ public sealed class MapGenerator
             .Average(countryMap => countryMap.Type.EqualsForType(targetType) ? 1 : 0);
     }
 
-    // private void ShortestPathLengthJohnson() { }
-    //
-    // private int ShortestPathLengthDijkstra(StateInfo startState, int endStateId)
-    // {
-    //     if (_pathCache.TryGetValue((startState, endStateId), out int cached))
-    //     {
-    //         return cached;
-    //     }
-    //     var visited = new HashSet<int>();
-    //     
-    // }
+    /// <summary>
+    /// 计算所有省份（State）之间的最短路径长度。
+    /// </summary>
+    private void ShortestPathLengthJohnson()
+    {
+        foreach (var state1 in _stateInfoManager.States)
+        {
+            foreach (var state2 in _stateInfoManager.States)
+            {
+                ShortestPathLengthDijkstra(state1, state2.Id);
+            }
+        }
+    }
 
+    /// <summary>
+    /// 使用 Dijkstra 算法计算两个省份（State）之间的最短路径长度，并储存起始省份单源最短路。
+    /// </summary>
+    /// <param name="startState">起始省份（State）</param>
+    /// <param name="endStateId">结束省份（State）</param>
+    /// <returns>两个省份（State）之间的最短路径长度</returns>
+    private int ShortestPathLengthDijkstra(StateInfo startState, int endStateId)
+    {
+        if (_pathCache.TryGetValue((startState, endStateId), out int cached))
+        {
+            return cached;
+        }
+
+        if (startState.Id == endStateId)
+        {
+            _pathCache[(startState, endStateId)] = 0;
+            return 0;
+        }
+        var visited = new HashSet<int>();
+        var priorityQueue = new PriorityQueue<StateInfo, int>();
+        var distances = new Dictionary<int, int> { [startState.Id] = 0 };
+        priorityQueue.Enqueue(startState, 0);
+        while (priorityQueue.Count > 0)
+        {
+            var currentState = priorityQueue.Dequeue();
+            if (!visited.Add(currentState.Id))
+            {
+                continue;
+            }
+
+            foreach (
+                var edgeState in currentState
+                    .Edges.AsValueEnumerable()
+                    .Where(state => !state.IsLand && !visited.Contains(state.Id))
+            )
+            {
+                int newDistance = distances[currentState.Id] + 1;
+                if (
+                    !distances.TryGetValue(edgeState.Id, out int existingDistance)
+                    || newDistance < existingDistance
+                )
+                {
+                    distances[edgeState.Id] = newDistance;
+                    priorityQueue.Enqueue(edgeState, newDistance);
+                }
+            }
+        }
+        foreach (var distance in distances)
+        {
+            _pathCache[(startState, distance.Key)] = distance.Value;
+        }
+        if (distances.TryGetValue(endStateId, out int result))
+        {
+            return result;
+        }
+        else
+        {
+            _pathCache[(startState, endStateId)] = -1;
+            return -1;
+        }
+    }
+
+    /// <summary>
+    /// 使用 BFS 算法计算两个省份（State）之间的最短路径长度
+    /// </summary>
+    /// <param name="startState">起始省份（State）</param>
+    /// <param name="endStateId">结束省份（State）</param>
+    /// <returns>两个省份（State）之间的最短路径长度</returns>
     private int ShortestPathLengthBfs(StateInfo startState, int endStateId)
     {
         if (_pathCache.TryGetValue((startState, endStateId), out int cached))
@@ -297,7 +368,7 @@ public sealed class MapGenerator
             foreach (
                 var edgeState in currentState
                     .Edges.AsValueEnumerable()
-                    .Where(state => !state.IsImpassable && !visited.Contains(state.Id))
+                    .Where(state => !state.IsLand && !visited.Contains(state.Id))
             )
             {
                 queue.Enqueue((edgeState, distance + 1));

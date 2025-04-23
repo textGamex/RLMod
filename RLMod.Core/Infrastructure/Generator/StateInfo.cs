@@ -17,6 +17,7 @@ public sealed class StateInfo : IEquatable<StateInfo>
     public StateType Type { get; }
     public bool IsImpassable { get; }
     public bool IsOcean { get; }
+    public bool IsLand => !IsImpassable && !IsOcean;
     public int MaxFactories { get; }
     public int TotalVictoryPoint { get; }
 
