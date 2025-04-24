@@ -90,8 +90,10 @@ public sealed class MapGenerator
 
         var countryTags = _countryTagService.GetCountryTags().ToList();
         Log.Info("为国家（Country）选择初始位置...");
-        ShortestPathLengthJohnson();
+
+        CalculateStatesDistance();
         var countries = GetRandomInitialState()
+            .AsValueEnumerable()
             .Select(initialState =>
             {
                 int index = _random.Next(countryTags.Count);
@@ -205,11 +207,11 @@ public sealed class MapGenerator
                     .Skip(startIndex)
                     .Take(endIndex - startIndex + 1)
                     .Select(d => d.State)
-                    .ToList();
+                    .ToArray();
 
                 selectedState =
-                    middleCandidates.Count > 0
-                        ? middleCandidates[_random.Next(middleCandidates.Count)]
+                    middleCandidates.Length > 0
+                        ? middleCandidates[_random.Next(middleCandidates.Length)]
                         : candidates[_random.Next(candidates.Count)];
             }
 
@@ -302,7 +304,7 @@ public sealed class MapGenerator
     /// <summary>
     /// 计算所有省份（State）之间的最短路径长度。
     /// </summary>
-    private void ShortestPathLengthJohnson()
+    private void CalculateStatesDistance()
     {
         foreach (var state1 in _stateInfoManager.States)
         {
@@ -462,6 +464,7 @@ public sealed class MapGenerator
         {
             double factoryRatio = ratio * 1.2;
             factoryRatio = Math.Max(industrialFactoryMinRatio, Math.Min(1.2, factoryRatio));
+            // BUG: 不生效, 与现有的工厂数量无关
             state.Factories = MathHelper.ClampValue(
                 (int)(originalFactories * factoryRatio),
                 min: (int)(originalFactories * industrialFactoryMinRatio),
