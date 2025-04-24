@@ -1,5 +1,8 @@
 ﻿using System.Diagnostics;
+using System.Text;
+using Microsoft.Extensions.DependencyInjection;
 using NLog;
+using RLMod.Core.Services;
 
 namespace RLMod.Core.Infrastructure.Generator;
 
@@ -92,7 +95,19 @@ public sealed class CountryInfo
         {
             StateType.Industrial => CountryType.Industrial,
             StateType.Resource => CountryType.Resource,
-            _ => CountryType.Balanced,
+            _ => CountryType.Balanced
         };
+    }
+
+    public void WriteToFiles()
+    {
+        var settings = App.Current.Services.GetRequiredService<AppSettingService>();
+
+        string statesFolder = Path.Combine(settings.OutputFolderPath, App.ModName, "history", "states");
+        foreach (var state in States)
+        {
+            string path = Path.Combine(statesFolder, $"{state.Id}-{state.State.Name}.txt");
+            File.WriteAllText(path, state.ToScript(), App.Utf8WithoutBom);
+        }
     }
 }

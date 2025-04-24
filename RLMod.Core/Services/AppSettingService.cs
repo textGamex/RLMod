@@ -16,6 +16,19 @@ public sealed partial class AppSettingService
     private string _gameRootFolderPath = string.Empty;
 
     [MemoryPackOrder(1)]
+    public string OutputFolderPath
+    {
+        get => _outputFolderPath;
+        set => SetProperty(ref _outputFolderPath, value);
+    }
+    private string _outputFolderPath = Path.Combine(
+        Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),
+        "Paradox Interactive",
+        "Hearts of Iron IV",
+        "mod"
+    );
+
+    [MemoryPackOrder(2)]
     public StateGenerateSettings StateGenerate { get; }
 
     /// <summary>

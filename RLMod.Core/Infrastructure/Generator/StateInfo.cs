@@ -2,6 +2,9 @@
 using MathNet.Numerics.Distributions;
 using MathNet.Numerics.Random;
 using Microsoft.Extensions.DependencyInjection;
+using ParadoxPower.CSharpExtensions;
+using ParadoxPower.Parser;
+using ParadoxPower.Process;
 using RLMod.Core.Helpers;
 using RLMod.Core.Models.Map;
 using RLMod.Core.Services;
@@ -193,6 +196,49 @@ public sealed class StateInfo : IEquatable<StateInfo>
         }
     }
 
+    public string ToScript()
+    {
+        Debug.Assert(State.Provinces.Length != 0);
+
+        var state = new Node("state");
+        var history = new Node("history");
+        Child[] child =
+        [
+            ChildHelper.Leaf("id", Id),
+            ChildHelper.LeafQString("name", State.Name),
+            ChildHelper.Leaf("manpower", State.Manpower),
+            ChildHelper.LeafString("state_category", Category.Name),
+            Child.Create(history),
+            ChildHelper.Node("provinces", State.Provinces.Select(ChildHelper.LeafValue))
+        ];
+
+        var historyChild = new List<Child>(2 + State.VictoryPoints.Length)
+        {
+            ChildHelper.LeafString("owner", Owner)
+        };
+
+        if (!Buildings.IsEmpty)
+        {
+            historyChild.Add(Child.Create(Buildings.ToNode()));
+        }
+
+        historyChild.AddRange(
+            State.VictoryPoints.Select(point =>
+                ChildHelper.Node(
+                    "victory_points",
+                    [ChildHelper.LeafValue(point.ProvinceId), ChildHelper.LeafValue(point.Value)]
+                )
+            )
+        );
+
+        history.AllArray = historyChild.ToArray();
+        state.AllArray = child;
+
+        return CKPrinter.PrettyPrintStatement(state.ToRaw);
+    }
+
+    #region Overrides
+
     public override bool Equals(object? obj)
     {
         return ReferenceEquals(this, obj) || obj is StateInfo other && Equals(other);
@@ -227,4 +273,6 @@ public sealed class StateInfo : IEquatable<StateInfo>
     {
         return Id;
     }
+
+    #endregion
 }

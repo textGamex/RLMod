@@ -8,7 +8,6 @@ using ParadoxPower.Process;
 using RLMod.Core.Extensions;
 using RLMod.Core.Helpers;
 using RLMod.Core.Infrastructure.Generator;
-using RLMod.Core.Infrastructure.Parser;
 using RLMod.Core.Models.Map;
 using RLMod.Core.Services;
 using ZLinq;
@@ -43,17 +42,39 @@ public sealed partial class MainWindowViewModel(AppSettingService settingService
         var states = GetStates(stateFolder);
         var generator = new MapGenerator(states);
 
-        // if (!ProvinceParser.TryParse(GameRootPath, out var provinces))
-        // {
-        //     throw new ArgumentException($"Could not parse province file");
-        // }
-
         // var manager = new StateInfoManager(states, provinces);
         // foreach (var managerState in manager.States.Take(100))
         // {
         //     Log.Debug("State Id: {Id}, 相邻: {Array}", managerState.Id, managerState.Edges);
         // }
         var countries = generator.GenerateRandomCountries();
+    }
+
+    private void GeneratorMod(IEnumerable<CountryInfo> countries)
+    {
+        string modPath = Path.Combine(settingService.OutputFolderPath, App.ModName);
+        if (!Directory.Exists(modPath))
+        {
+            Directory.CreateDirectory(modPath);
+        }
+        string modDescriptionFilePath = Path.Combine(settingService.OutputFolderPath, $"{App.ModName}.mod");
+
+        Child[] children =
+        [
+            ChildHelper.LeafQString("name", App.ModName),
+            ChildHelper.LeafQString("path", modPath),
+            ChildHelper.LeafQString("version", "0.1.0-beta"),
+            ChildHelper.LeafQString("supported_version", "1.16.*")
+        ];
+        File.WriteAllText(
+            modDescriptionFilePath,
+            CKPrinter.PrettyPrintStatements(children.Select(child => child.GetRawStatement("mod")))
+        );
+
+        foreach (var country in countries)
+        {
+            country.WriteToFiles();
+        }
     }
 
     private List<State> GetStates(string stateFolder)
