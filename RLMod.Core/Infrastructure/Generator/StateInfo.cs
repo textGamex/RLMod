@@ -118,6 +118,19 @@ public sealed class StateInfo : IEquatable<StateInfo>
         GenerateBuildings();
     }
 
+    private static int _oceanStateId = 0;
+    public StateInfo(int[] provinces)
+    {
+        State = new State
+        {
+            Provinces = provinces,
+        };
+        Category = null!;
+        _random = RandomHelper.GetRandomWithSeed();
+        Id = --_oceanStateId;
+        IsOcean = true;
+    }
+
     public void SetAdjacent(StateInfo[] adjacent)
     {
         _adjacent = adjacent;
@@ -209,12 +222,12 @@ public sealed class StateInfo : IEquatable<StateInfo>
             ChildHelper.Leaf("manpower", State.Manpower),
             ChildHelper.LeafString("state_category", Category.Name),
             Child.Create(history),
-            ChildHelper.Node("provinces", State.Provinces.Select(ChildHelper.LeafValue))
+            ChildHelper.Node("provinces", State.Provinces.Select(ChildHelper.LeafValue)),
         ];
 
         var historyChild = new List<Child>(2 + State.VictoryPoints.Length)
         {
-            ChildHelper.LeafString("owner", Owner)
+            ChildHelper.LeafString("owner", Owner),
         };
 
         if (!Buildings.IsEmpty)
