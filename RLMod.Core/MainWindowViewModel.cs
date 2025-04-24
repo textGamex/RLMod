@@ -50,7 +50,7 @@ public sealed partial class MainWindowViewModel(AppSettingService settingService
         var countries = generator.GenerateRandomCountries();
     }
 
-    private void GeneratorMod(IEnumerable<CountryInfo> countries)
+    private void GenerateMod(IEnumerable<CountryInfo> countries)
     {
         string modPath = Path.Combine(settingService.OutputFolderPath, App.ModName);
         if (!Directory.Exists(modPath))
