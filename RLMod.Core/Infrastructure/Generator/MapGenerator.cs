@@ -90,6 +90,7 @@ public sealed class MapGenerator
 
         var countryTags = _countryTagService.GetCountryTags().ToList();
         Log.Info("为国家（Country）选择初始位置...");
+        ShortestPathLengthJohnson();
         var countries = GetRandomInitialState()
             .Select(initialState =>
             {
@@ -157,27 +158,66 @@ public sealed class MapGenerator
     /// 为国家（Country）选择初始省份（State）。
     /// </summary>
     /// <returns>初始省份（State）</returns>
-    private ValueEnumerable<
-        Select<
-            OrderBySkipTake<Where<FromEnumerable<StateInfo>, StateInfo>, StateInfo, int>,
-            StateInfo,
-            StateInfo
-        >,
-        StateInfo
-    > GetRandomInitialState()
+    private List<StateInfo> GetRandomInitialState() // ZLinq 类型一直错误，先改成这样
     {
-        // 从陆地可通行省份中选取
-        return _stateInfoManager
-            .States.AsValueEnumerable()
-            .Where(s => s.IsPassableLand && !_occupiedStates.Contains(s))
-            .OrderBy(_ => _random.Next())
-            .Take(_countriesCount)
-            .Select(s =>
+        var selectedStates = new List<StateInfo>();
+        var candidates = _stateInfoManager
+            .States.Where(s => s.IsPassableLand && !_occupiedStates.Contains(s))
+            .ToList();
+
+        for (int i = 0; i < _countriesCount; i++)
+        {
+            // 实际保证数量足够
+            if (candidates.Count == 0)
             {
-                //TODO: 优化
-                _occupiedStates.Add(s);
-                return s;
-            });
+                break;
+            }
+
+            StateInfo selectedState;
+            if (selectedStates.Count == 0) // 第一个随机选
+            {
+                selectedState = candidates[_random.Next(candidates.Count)];
+            }
+            else // 剩下的在中间 15% 选
+            {
+                var candidateDistances = candidates
+                    .Select(candidate => new
+                    {
+                        State = candidate,
+                        TotalDistance = selectedStates.Sum(selected =>
+                            ShortestPathLengthBfs(candidate, selected.Id)
+                        ),
+                    })
+                    .ToList();
+                var sortedCandidates = candidateDistances.OrderBy(d => d.TotalDistance).ToList();
+
+                // 确定中间 15% 的范围
+                int totalCandidates = sortedCandidates.Count;
+                int startIndex = (int)(totalCandidates * 0.425);
+                int endIndex = (int)(totalCandidates * 0.575);
+                if (startIndex >= endIndex)
+                {
+                    startIndex = 0;
+                    endIndex = Math.Max(0, totalCandidates - 1);
+                }
+
+                var middleCandidates = sortedCandidates
+                    .Skip(startIndex)
+                    .Take(endIndex - startIndex + 1)
+                    .Select(d => d.State)
+                    .ToList();
+
+                selectedState =
+                    middleCandidates.Count > 0
+                        ? middleCandidates[_random.Next(middleCandidates.Count)]
+                        : candidates[_random.Next(candidates.Count)];
+            }
+
+            selectedStates.Add(selectedState);
+            _occupiedStates.Add(selectedState);
+            candidates.Remove(selectedState);
+        }
+        return selectedStates;
     }
 
     /// <summary>
