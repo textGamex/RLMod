@@ -41,13 +41,9 @@ public sealed partial class MainWindowViewModel(AppSettingService settingService
         string stateFolder = Path.Combine(GameRootPath, "history", "states");
         var states = GetStates(stateFolder);
         var generator = new MapGenerator(states);
-
-        // var manager = new StateInfoManager(states, provinces);
-        // foreach (var managerState in manager.States.Take(100))
-        // {
-        //     Log.Debug("State Id: {Id}, 相邻: {Array}", managerState.Id, managerState.Edges);
-        // }
         var countries = generator.GenerateRandomCountries();
+        Log.Info("State Sum:{Sum}", countries.Sum(country => country.States.Count));
+        MapGenerator.ClearOccupiedStates();
     }
 
     private void GenerateMod(IEnumerable<CountryInfo> countries)

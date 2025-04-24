@@ -119,12 +119,10 @@ public sealed class StateInfo : IEquatable<StateInfo>
     }
 
     private static int _oceanStateId = 0;
+
     public StateInfo(int[] provinces)
     {
-        State = new State
-        {
-            Provinces = provinces,
-        };
+        State = new State { Provinces = provinces };
         Category = null!;
         _random = RandomHelper.GetRandomWithSeed();
         Id = --_oceanStateId;

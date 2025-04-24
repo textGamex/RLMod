@@ -64,7 +64,7 @@ public sealed class CountryInfo
 
     private void UpdateBorders(StateInfo addedState)
     {
-        Log.Debug("更新{InitialId}的接壤省份", InitialId);
+        // Log.Debug("更新{InitialId}的接壤省份", InitialId);
         foreach (var edgeState in addedState.Edges)
         {
             if (_states.Contains(edgeState) || MapGenerator.OccupiedStates.Contains(edgeState))

@@ -7,7 +7,7 @@ namespace RLMod.Core.Infrastructure.Generator;
 
 public sealed class StateInfoManager
 {
-    public IEnumerable<StateInfo> States => _stateInfos;
+    public IReadOnlyList<StateInfo> States => _stateInfos;
     public int PassableStateCount => _stateInfos.Count(stateInfo => !stateInfo.IsImpassable);
     public int PassableLandStateCount => _stateInfos.Count(stateInfo => stateInfo.IsPassableLand);
 
@@ -17,10 +17,10 @@ public sealed class StateInfoManager
     public StateInfoManager(
         IReadOnlyList<State> states,
         IReadOnlyDictionary<int, Province> provinces,
-        IEnumerable<IEnumerable<int>> oceanStates
+        IReadOnlyCollection<IEnumerable<int>> oceanStates
     )
     {
-        var stateInfos = new List<StateInfo>(states.Count);
+        var stateInfos = new List<StateInfo>(states.Count + oceanStates.Count);
         var stateAdjacentMap = new Dictionary<int, List<StateInfo>>(states.Count);
 
         var random = RandomHelper.GetRandomWithSeed();
@@ -30,9 +30,10 @@ public sealed class StateInfoManager
             var state = states[i];
             stateInfos.Add(new StateInfo(state, stateTypes[i]));
         }
-        foreach (int[] oceanState in oceanStates)
+
+        foreach (var oceanState in oceanStates)
         {
-            stateInfos.Add(new StateInfo(oceanState));
+            stateInfos.Add(new StateInfo(oceanState.ToArray()));
         }
 
         // 查找相邻的State

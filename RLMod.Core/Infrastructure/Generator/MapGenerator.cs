@@ -22,6 +22,11 @@ public sealed class MapGenerator
     /// </summary>
     private static readonly HashSet<StateInfo> _occupiedStates = [];
 
+    public static void ClearOccupiedStates()
+    {
+        _occupiedStates.Clear();
+    }
+    
     private readonly StateInfoManager _stateInfoManager;
     private readonly int _countriesCount;
     private readonly MersenneTwister _random;

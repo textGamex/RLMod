@@ -10,7 +10,7 @@ namespace RLMod.Core.Services;
 
 public sealed class ProvinceService(AppSettingService settingService)
 {
-    public IEnumerable<IEnumerable<int>> GetOceanProvinces(IReadOnlyDictionary<int, Province> provinces)
+    public IReadOnlyCollection<IEnumerable<int>> GetOceanProvinces(IReadOnlyDictionary<int, Province> provinces)
     {
         string path = Path.Combine(settingService.GameRootFolderPath, "map", "strategicregions");
 
