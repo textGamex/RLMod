@@ -188,8 +188,8 @@ public sealed class MapGenerator
                     {
                         State = candidate,
                         TotalDistance = selectedStates.Sum(selected =>
-                            ShortestPathLengthBfs(candidate, selected.Id)
-                        )
+                            ShortestPathLengthDijkstra(candidate, selected.Id)
+                        ),
                     })
                     .OrderBy(d => d.TotalDistance)
                     .ToArray();
@@ -281,7 +281,7 @@ public sealed class MapGenerator
         int sumDistance = countries
             .AsValueEnumerable()
             .Where(c => c.InitialId != state.Id)
-            .Sum(c => ShortestPathLengthBfs(state, c.InitialId));
+            .Sum(c => ShortestPathLengthDijkstra(state, c.InitialId));
         // 返回平均值
         return (double)sumDistance / (countries.Length - 1);
     }
@@ -376,48 +376,6 @@ public sealed class MapGenerator
             _pathCache[(startState, endStateId)] = -1;
             return -1;
         }
-    }
-
-    /// <summary>
-    /// 使用 BFS 算法计算两个省份（State）之间的最短路径长度
-    /// </summary>
-    /// <param name="startState">起始省份（State）</param>
-    /// <param name="endStateId">结束省份（State）</param>
-    /// <returns>两个省份（State）之间的最短路径长度</returns>
-    private int ShortestPathLengthBfs(StateInfo startState, int endStateId)
-    {
-        if (_pathCache.TryGetValue((startState, endStateId), out int cached))
-        {
-            return cached;
-        }
-
-        var visited = new HashSet<int>();
-        var queue = new Queue<(StateInfo, int distance)>();
-        queue.Enqueue((startState, 0));
-        while (queue.Count > 0)
-        {
-            var (currentState, distance) = queue.Dequeue();
-            if (currentState.Id == endStateId)
-            {
-                _pathCache[(startState, endStateId)] = distance;
-                return distance;
-            }
-            if (!visited.Add(currentState.Id))
-            {
-                continue;
-            }
-
-            foreach (
-                var edgeState in currentState
-                    .Edges.AsValueEnumerable()
-                    .Where(state => !state.IsPassableLand && !visited.Contains(state.Id))
-            )
-            {
-                queue.Enqueue((edgeState, distance + 1));
-            }
-        }
-        _pathCache[(startState, endStateId)] = -1;
-        return -1;
     }
 
     private void ApplyValueDistribution(IReadOnlyCollection<CountryInfo> countries)
