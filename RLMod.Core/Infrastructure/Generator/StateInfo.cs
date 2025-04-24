@@ -176,11 +176,11 @@ public sealed class StateInfo : IEquatable<StateInfo>
         {
             if (setting.IsNecessary)
             {
-                var normal = Normal.WithMeanStdDev(setting.Mean, setting.StandardDeviation, _random);
+                double level = Normal.Sample(_random, setting.Mean, setting.StandardDeviation);
                 Buildings.Add(
                     setting.Name,
                     MathHelper.ClampValue(
-                        (int)Math.Round(normal.Sample()),
+                        (int)Math.Round(level),
                         setting.MinLevel ?? 1,
                         Math.Min(setting.MaxLevel ?? int.MaxValue, BuildingService[setting.Name].MaxLevel)
                     )
