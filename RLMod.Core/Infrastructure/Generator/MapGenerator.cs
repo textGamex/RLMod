@@ -182,19 +182,20 @@ public sealed class MapGenerator
             }
             else // 剩下的在中间 15% 选
             {
-                var candidateDistances = candidates
+                var sortedCandidates = candidates
+                    .AsValueEnumerable()
                     .Select(candidate => new
                     {
                         State = candidate,
                         TotalDistance = selectedStates.Sum(selected =>
                             ShortestPathLengthBfs(candidate, selected.Id)
-                        ),
+                        )
                     })
-                    .ToList();
-                var sortedCandidates = candidateDistances.OrderBy(d => d.TotalDistance).ToList();
+                    .OrderBy(d => d.TotalDistance)
+                    .ToArray();
 
                 // 确定中间 15% 的范围
-                int totalCandidates = sortedCandidates.Count;
+                int totalCandidates = sortedCandidates.Length;
                 int startIndex = (int)(totalCandidates * 0.425);
                 int endIndex = (int)(totalCandidates * 0.575);
                 if (startIndex >= endIndex)
