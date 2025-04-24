@@ -160,7 +160,7 @@ public sealed class MapGenerator
     /// 为国家（Country）选择初始省份（State）。
     /// </summary>
     /// <returns>初始省份（State）</returns>
-    private List<StateInfo> GetRandomInitialState() // ZLinq 类型一直错误，先改成这样
+    private List<StateInfo> GetRandomInitialState()
     {
         var selectedStates = new List<StateInfo>();
         var candidates = _stateInfoManager
