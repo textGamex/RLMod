@@ -106,7 +106,7 @@ public sealed class CountryInfo
         string statesFolder = Path.Combine(settings.OutputFolderPath, App.ModName, "history", "states");
         foreach (var state in States)
         {
-            string path = Path.Combine(statesFolder, $"{state.Id}-{state.State.Name}.txt");
+            string path = Path.Combine(statesFolder, $"{state.Id}.txt");
             File.WriteAllText(path, state.ToScript(), App.Utf8WithoutBom);
         }
     }
