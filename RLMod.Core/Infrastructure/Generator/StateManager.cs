@@ -9,13 +9,16 @@ public sealed class StateInfoManager
 {
     public IEnumerable<StateInfo> States => _stateInfos;
     public int PassableStateCount => _stateInfos.Count(stateInfo => !stateInfo.IsImpassable);
-    public int PassableLandStateCount =>
-        _stateInfos.Count(stateInfo => stateInfo.IsPassableLand);
+    public int PassableLandStateCount => _stateInfos.Count(stateInfo => stateInfo.IsPassableLand);
 
     private readonly StateInfo[] _stateInfos;
 
     [Time]
-    public StateInfoManager(IReadOnlyList<State> states, IReadOnlyDictionary<int, Province> provinces)
+    public StateInfoManager(
+        IReadOnlyList<State> states,
+        IReadOnlyDictionary<int, Province> provinces,
+        IEnumerable<IEnumerable<int>> oceanStates
+    )
     {
         var stateInfos = new List<StateInfo>(states.Count);
         var stateAdjacentMap = new Dictionary<int, List<StateInfo>>(states.Count);
@@ -26,6 +29,10 @@ public sealed class StateInfoManager
         {
             var state = states[i];
             stateInfos.Add(new StateInfo(state, stateTypes[i]));
+        }
+        foreach (int[] oceanState in oceanStates)
+        {
+            stateInfos.Add(new StateInfo(oceanState));
         }
 
         // 查找相邻的State
