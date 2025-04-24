@@ -188,7 +188,7 @@ public sealed class MapGenerator
                     {
                         State = candidate,
                         TotalDistance = selectedStates.Sum(selected =>
-                            ShortestPathLengthDijkstra(candidate, selected.Id)
+                            GetStateShortestPathLength(candidate, selected.Id)
                         ),
                     })
                     .OrderBy(d => d.TotalDistance)
@@ -205,6 +205,7 @@ public sealed class MapGenerator
                 }
 
                 var middleCandidates = sortedCandidates
+                    .AsValueEnumerable()
                     .Skip(startIndex)
                     .Take(endIndex - startIndex + 1)
                     .Select(d => d.State)
@@ -232,11 +233,12 @@ public sealed class MapGenerator
     private StateInfo? GetBestState(IReadOnlyCollection<StateInfo> candidates, CountryInfo[] countries)
     {
         // 获取非海洋候选省份，如无则选择失败
-        var validCandidates = candidates.Where(id => !_occupiedStates.Contains(id)).ToList();
-        if (validCandidates.Count == 0)
+        int validCandidatesCount = candidates.AsValueEnumerable().Count(id => !_occupiedStates.Contains(id));
+        if (validCandidatesCount == 0)
         {
             return null;
         }
+
         // 评估得分
         var scores = candidates
             .AsValueEnumerable()
@@ -281,7 +283,7 @@ public sealed class MapGenerator
         int sumDistance = countries
             .AsValueEnumerable()
             .Where(c => c.InitialId != state.Id)
-            .Sum(c => ShortestPathLengthDijkstra(state, c.InitialId));
+            .Sum(c => GetStateShortestPathLength(state, c.InitialId));
         // 返回平均值
         return (double)sumDistance / (countries.Length - 1);
     }
@@ -311,7 +313,7 @@ public sealed class MapGenerator
         {
             foreach (var state2 in _stateInfoManager.States)
             {
-                ShortestPathLengthDijkstra(state1, state2.Id);
+                GetStateShortestPathLength(state1, state2.Id);
             }
         }
     }
@@ -322,7 +324,7 @@ public sealed class MapGenerator
     /// <param name="startState">起始省份（State）</param>
     /// <param name="endStateId">结束省份（State）</param>
     /// <returns>两个省份（State）之间的最短路径长度</returns>
-    private int ShortestPathLengthDijkstra(StateInfo startState, int endStateId)
+    private int GetStateShortestPathLength(StateInfo startState, int endStateId)
     {
         if (_pathCache.TryGetValue((startState, endStateId), out int cached))
         {
@@ -383,7 +385,7 @@ public sealed class MapGenerator
         double[] targetValues = GenerateNormalDistribution(countries.Count);
         Array.Sort(targetValues);
 
-        var orderedCountries = countries.OrderBy(c => c.GetValue()).ToArray();
+        var orderedCountries = countries.AsValueEnumerable().OrderBy(c => c.GetValue()).ToArray();
 
         for (int i = 0; i < orderedCountries.Length; i++)
         {
@@ -409,6 +411,11 @@ public sealed class MapGenerator
         }
     }
 
+    /// <summary>
+    /// 调整属性以符合正态分布
+    /// </summary>
+    /// <param name="state"></param>
+    /// <param name="ratio"></param>
     private void AdjustStateProperties(StateInfo state, double ratio)
     {
         const double industrialFactoryMinRatio = 0.8;
