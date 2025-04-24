@@ -1,0 +1,29 @@
+﻿[
+  {
+    "Name": "infrastructure",
+    "IsNecessary": true,
+    "MinLevel": 1,
+    "MaxLevel": null,
+    "Mean": 3,
+    "StandardDeviation": 1,
+    "Proportion": 0
+  },
+  {
+    "Name": "arms_factory",
+    "IsNecessary": false,
+    "MinLevel": null,
+    "MaxLevel": null,
+    "Mean": 0,
+    "StandardDeviation": 0,
+    "Proportion": 0.3
+  },
+  {
+    "Name": "industrial_complex",
+    "IsNecessary": false,
+    "MinLevel": null,
+    "MaxLevel": null,
+    "Mean": 0,
+    "StandardDeviation": 0,
+    "Proportion": 0.7
+  }
+]

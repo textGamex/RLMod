@@ -1,4 +1,6 @@
-﻿using MathNet.Numerics.Random;
+﻿using System.Diagnostics;
+using MathNet.Numerics.Distributions;
+using MathNet.Numerics.Random;
 using Microsoft.Extensions.DependencyInjection;
 using RLMod.Core.Helpers;
 using RLMod.Core.Models.Map;
@@ -21,6 +23,7 @@ public sealed class StateInfo : IEquatable<StateInfo>
     public bool IsPassableLand => !IsImpassable && !IsOcean;
     public int MaxFactories { get; }
     public int TotalVictoryPoint { get; }
+    public StateBuildings Buildings { get; } = new();
 
     /// <summary>
     /// 计算获取省份的价值。
@@ -55,6 +58,10 @@ public sealed class StateInfo : IEquatable<StateInfo>
         App.Current.Services.GetRequiredService<StateCategoryService>();
     private static readonly AppSettingService AppSettingService =
         App.Current.Services.GetRequiredService<AppSettingService>();
+    private static readonly BuildingGenerateSettingService BuildingGenerateSettingService =
+        App.Current.Services.GetRequiredService<BuildingGenerateSettingService>();
+    private static readonly BuildingService BuildingService =
+        App.Current.Services.GetRequiredService<BuildingService>();
 
     public StateInfo(State state, StateType type)
     {
@@ -104,6 +111,8 @@ public sealed class StateInfo : IEquatable<StateInfo>
                 GenerateBalancedProperties(MaxFactories, resourcesLimit);
                 break;
         }
+
+        GenerateBuildings();
     }
 
     public void SetAdjacent(StateInfo[] adjacent)
@@ -151,6 +160,36 @@ public sealed class StateInfo : IEquatable<StateInfo>
         {
             Resources = (int)(resourceStandard + _random.Next(-25, 26));
             Resources = Math.Max(0, Math.Min(maxResources, Resources));
+        }
+    }
+
+    private void GenerateBuildings()
+    {
+        Debug.Assert(
+            Math.Abs(
+                BuildingGenerateSettingService.BuildingGenerateSettings.Sum(setting => setting.Proportion)
+                    - 1.0
+            ) < 0.0001
+        );
+
+        foreach (var setting in BuildingGenerateSettingService.BuildingGenerateSettings)
+        {
+            if (setting.IsNecessary)
+            {
+                var normal = Normal.WithMeanStdDev(setting.Mean, setting.StandardDeviation, _random);
+                Buildings.Add(
+                    setting.Name,
+                    MathHelper.ClampValue(
+                        (int)Math.Round(normal.Sample()),
+                        setting.MinLevel ?? 1,
+                        Math.Min(setting.MaxLevel ?? int.MaxValue, BuildingService[setting.Name].MaxLevel)
+                    )
+                );
+            }
+            else
+            {
+                Buildings.Add(setting.Name, (int)Math.Round(Factories * setting.Proportion));
+            }
         }
     }
 

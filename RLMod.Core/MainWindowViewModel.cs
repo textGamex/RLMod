@@ -3,6 +3,7 @@ using CommunityToolkit.Mvvm.Input;
 using Microsoft.Win32;
 using NLog;
 using ParadoxPower.CSharpExtensions;
+using ParadoxPower.Parser;
 using ParadoxPower.Process;
 using RLMod.Core.Extensions;
 using RLMod.Core.Helpers;
@@ -42,17 +43,17 @@ public sealed partial class MainWindowViewModel(AppSettingService settingService
         var states = GetStates(stateFolder);
         var generator = new MapGenerator(states);
 
-        if (!ProvinceParser.TryParse(GameRootPath, out var provinces))
-        {
-            throw new ArgumentException($"Could not parse province file");
-        }
+        // if (!ProvinceParser.TryParse(GameRootPath, out var provinces))
+        // {
+        //     throw new ArgumentException($"Could not parse province file");
+        // }
 
         // var manager = new StateInfoManager(states, provinces);
         // foreach (var managerState in manager.States.Take(100))
         // {
         //     Log.Debug("State Id: {Id}, 相邻: {Array}", managerState.Id, managerState.Edges);
         // }
-        var countries = generator.GenerateRandomCountry();
+        var countries = generator.GenerateRandomCountries();
     }
 
     private List<State> GetStates(string stateFolder)

@@ -40,7 +40,7 @@ public sealed class MapGenerator
     /// <param name="countriesCount">目标国家数量，默认为 MapSettings.MaxCountry</param>
     /// <param name="valueMean">正态分布均值（μ），默认为 5000</param>
     /// <param name="valueStdDev">正态分布标准差（σ），默认为 1000</param>
-    /// <exception cref="ArgumentException">参数错误</exception>
+    /// <exception cref="ArgumentException">无法解析 Province 时抛出</exception>
     public MapGenerator(
         IReadOnlyList<State> states,
         int countriesCount = MapSettings.MaxCountry,
@@ -84,7 +84,7 @@ public sealed class MapGenerator
     /// </summary>
     /// <returns>国家（Country）列表</returns>
     [Time]
-    public IReadOnlyCollection<CountryInfo> GenerateRandomCountry()
+    public IReadOnlyCollection<CountryInfo> GenerateRandomCountries()
     {
         Log.Info("获取国家标签（Country Tag）表...");
 
@@ -109,12 +109,12 @@ public sealed class MapGenerator
 
             foreach (var country in countries)
             {
-                Log.Debug("尝试为国家：{Id}扩展...", country.InitialId);
+                // Log.Debug("尝试为国家：{Id}扩展...", country.InitialId);
                 // 获取可通行省份， 包括海洋省份
                 var passableBorder = country.GetPassableBorder();
                 if (passableBorder.Count <= 0)
                 {
-                    Log.Debug("没有可扩展方向，无法扩展...");
+                    // Log.Debug("没有可扩展方向，无法扩展...");
                     continue;
                 }
 
@@ -147,7 +147,7 @@ public sealed class MapGenerator
             return false;
         }
 
-        Log.Debug("向{StateId}扩展", state.Id);
+        // Log.Debug("向{StateId}扩展", state.Id);
         country.AddState(state);
         _occupiedStates.Add(state);
         return true;
@@ -422,7 +422,7 @@ public sealed class MapGenerator
         {
             double factoryRatio = ratio * 1.2;
             factoryRatio = Math.Max(industrialFactoryMinRatio, Math.Min(1.2, factoryRatio));
-            state.Factories = ClampValue(
+            state.Factories = MathHelper.ClampValue(
                 (int)(originalFactories * factoryRatio),
                 min: (int)(originalFactories * industrialFactoryMinRatio),
                 max: _settings.StateGenerate.MaxFactoryNumber
@@ -430,7 +430,7 @@ public sealed class MapGenerator
 
             double resourceRatio = ratio * 0.8;
             resourceRatio = Math.Min(industrialResourceMaxRatio, resourceRatio);
-            state.Resources = ClampValue(
+            state.Resources = MathHelper.ClampValue(
                 (int)(originalResources * resourceRatio),
                 max: _settings.StateGenerate.MaxResourceNumber
             );
@@ -439,13 +439,13 @@ public sealed class MapGenerator
         {
             double resourceRatio = ratio * 1.2;
             resourceRatio = Math.Max(resourceResourceMinRatio, Math.Min(1.2, resourceRatio));
-            state.Resources = ClampValue(
+            state.Resources = MathHelper.ClampValue(
                 (int)(originalResources * resourceRatio),
                 min: (int)(originalResources * resourceResourceMinRatio),
                 max: _settings.StateGenerate.MaxResourceNumber
             );
 
-            state.Factories = ClampValue(
+            state.Factories = MathHelper.ClampValue(
                 (int)(originalFactories * ratio * 0.8),
                 max: _settings.StateGenerate.MaxFactoryNumber
             );
@@ -455,12 +455,12 @@ public sealed class MapGenerator
             double factoryRatio = ratio * (0.9 + _random.NextDouble() * 0.2); // 0.9-1.1
             double resourceRatio = ratio * (0.9 + _random.NextDouble() * 0.2);
 
-            state.Factories = ClampValue(
+            state.Factories = MathHelper.ClampValue(
                 (int)(originalFactories * factoryRatio),
                 min: (int)(originalFactories * 0.7),
                 max: _settings.StateGenerate.MaxFactoryNumber
             );
-            state.Resources = ClampValue(
+            state.Resources = MathHelper.ClampValue(
                 (int)(originalResources * resourceRatio),
                 min: (int)(originalResources * 0.7),
                 max: _settings.StateGenerate.MaxResourceNumber
@@ -484,9 +484,6 @@ public sealed class MapGenerator
     //             break;
     //     }
     // }
-
-    private static int ClampValue(int value, int min = 0, int max = int.MaxValue) =>
-        Math.Max(min, Math.Min(value, max));
 
     private double[] GenerateNormalDistribution(int count)
     {

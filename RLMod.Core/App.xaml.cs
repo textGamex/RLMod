@@ -13,6 +13,7 @@ public partial class App : Application
     public IServiceProvider Services => _host.Services;
     public static new App Current => (App)Application.Current;
     public static string AppConfigPath { get; } = Path.Combine(Environment.CurrentDirectory, "Configs");
+    public static string Assets { get; } = Path.Combine(Environment.CurrentDirectory, "Assets");
 
     private readonly IHost _host;
     private static readonly Logger Log = LogManager.GetCurrentClassLogger();
@@ -47,10 +48,13 @@ public partial class App : Application
         builder.Services.AddSingleton<MainWindow>();
         builder.Services.AddSingleton<MainWindowViewModel>();
 
-        builder.Services.AddSingleton(AppSettingService.Load());
         builder.Services.AddSingleton<CountryTagService>();
         builder.Services.AddSingleton<ProvinceService>();
         builder.Services.AddSingleton<StateCategoryService>();
+        builder.Services.AddSingleton<BuildingService>();
+
+        builder.Services.AddSingleton(AppSettingService.Load());
+        builder.Services.AddSingleton<BuildingGenerateSettingService>();
 
         // 添加 NLog 日志
         builder.Logging.ClearProviders();
