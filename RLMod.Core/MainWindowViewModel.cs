@@ -1,6 +1,7 @@
 ﻿using System.Windows;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using MathNet.Numerics.Random;
 using Microsoft.Win32;
 using NLog;
 using ParadoxPower.CSharpExtensions;
@@ -25,6 +26,12 @@ public sealed partial class MainWindowViewModel(AppSettingService settingService
     [ObservableProperty]
     private string _generateCountryCount = settingService.GenerateCountryCount.ToString();
 
+    [ObservableProperty]
+    private int _randomSeed = settingService.RandomSeed ?? 0;
+
+    [ObservableProperty]
+    private bool _isInputRandomSeed;
+
     [RelayCommand]
     private void SelectGameRootPath()
     {
@@ -48,6 +55,16 @@ public sealed partial class MainWindowViewModel(AppSettingService settingService
             return;
         }
 
+        if (IsInputRandomSeed)
+        {
+            settingService.RandomSeed = RandomSeed;
+        }
+        else
+        {
+            settingService.RandomSeed = Random.Shared.NextFullRangeInt32();
+            RandomSeed = settingService.RandomSeed.Value;
+        }
+
         string stateFolder = Path.Combine(GameRootPath, "history", "states");
         var states = GetStates(stateFolder);
 
@@ -55,7 +72,7 @@ public sealed partial class MainWindowViewModel(AppSettingService settingService
         var countries = generator.GenerateRandomCountries().ToArray();
 
         Log.Info("State Sum:{Sum}", countries.Sum(country => country.States.Count));
-        GenerateMod(countries);
+        // GenerateMod(countries);
     }
 
     private void GenerateMod(IEnumerable<CountryInfo> countries)

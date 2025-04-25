@@ -24,6 +24,7 @@
     <PackageReference Include="ParadoxPower" Version="0.8.7-beta" />
     <PackageReference Include="ParadoxPower.CSharpExtensions" Version="0.5.1-beta" />
     <PackageReference Include="System.Drawing.Common" Version="9.0.4" />
+    <PackageReference Include="ValueConverters" Version="3.1.22" />
     <PackageReference Include="ZLinq" Version="1.4.0" />
     <PackageReference Include="Fody" Version="6.9.2">
       <PrivateAssets>all</PrivateAssets>
