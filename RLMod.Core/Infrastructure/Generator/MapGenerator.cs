@@ -32,7 +32,11 @@ public sealed class MapGenerator
     private readonly MersenneTwister _random;
     private readonly double _valueMean;
     private readonly double _valueStdDev;
-    private readonly Dictionary<DistanceNode, int> _pathCache = new();
+
+    /// <summary>
+    /// Key 为起始state和结束state的hash值，Value 为距离
+    /// </summary>
+    private readonly Dictionary<int, int> _pathCache = new();
     private readonly AppSettingService _settings;
     private readonly CountryTagService _countryTagService;
     private readonly ProvinceService _provinceService;
@@ -341,14 +345,15 @@ public sealed class MapGenerator
     /// <returns>两个省份（State）之间的最短路径长度</returns>
     private int GetStateShortestPathLength(StateInfo startState, int endStateId)
     {
-        if (_pathCache.TryGetValue(new DistanceNode(startState, endStateId), out int cached))
+        int hash = GetCacheHashCode(startState.Id, endStateId);
+        if (_pathCache.TryGetValue(hash, out int cached))
         {
             return cached;
         }
 
         if (startState.Id == endStateId)
         {
-            _pathCache[new DistanceNode(startState, endStateId)] = 0;
+            _pathCache[hash] = 0;
             return 0;
         }
         var visited = new HashSet<int>();
@@ -382,7 +387,7 @@ public sealed class MapGenerator
         }
         foreach (var distance in distances)
         {
-            _pathCache[new DistanceNode(startState, distance.Key)] = distance.Value;
+            _pathCache[GetCacheHashCode(startState.Id, distance.Key)] = distance.Value;
         }
         if (distances.TryGetValue(endStateId, out int result))
         {
@@ -390,8 +395,22 @@ public sealed class MapGenerator
         }
         else
         {
-            _pathCache[new DistanceNode(startState, endStateId)] = -1;
+            _pathCache[hash] = -1;
             return -1;
+        }
+
+        // 生成一个顺序无关的 HashCode
+        int GetCacheHashCode(int startId, int endId)
+        {
+            unchecked
+            {
+                if (startId > endId)
+                {
+                    return (startId * 31) ^ endId;
+                }
+
+                return (endId * 31) ^ startId;
+            }
         }
     }
 
@@ -515,45 +534,5 @@ public sealed class MapGenerator
         double[] values = new double[count];
         normal.Samples(values);
         return values;
-    }
-
-    private readonly struct DistanceNode(StateInfo state, int endStateId) : IEquatable<DistanceNode>
-    {
-        // start 存 StateInfo 而不是 Id 是因为需要 Edges 信息, 只存 Id 需要多查一次字典来查找 StateInfo
-        public StateInfo Start { get; } = state;
-        public int EndStateId { get; } = endStateId;
-
-        public bool Equals(DistanceNode other)
-        {
-            return Start.Equals(other.Start) && EndStateId == other.EndStateId;
-        }
-
-        public override bool Equals(object? obj)
-        {
-            return obj is DistanceNode other && Equals(other);
-        }
-
-        public override int GetHashCode()
-        {
-            unchecked
-            {
-                if (Start.Id > endStateId)
-                {
-                    return (Start.Id * 31) ^ EndStateId;
-                }
-
-                return (EndStateId * 31) ^ Start.Id;
-            }
-        }
-
-        public static bool operator ==(DistanceNode left, DistanceNode right)
-        {
-            return left.Equals(right);
-        }
-
-        public static bool operator !=(DistanceNode left, DistanceNode right)
-        {
-            return !left.Equals(right);
-        }
     }
 }
