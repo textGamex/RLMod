@@ -1,6 +1,5 @@
 ﻿using MethodTimer;
 using NLog;
-using NLog.Fluent;
 using RLMod.Core.Helpers;
 using RLMod.Core.Infrastructure.Parser;
 using RLMod.Core.Models.Map;
@@ -9,12 +8,12 @@ namespace RLMod.Core.Infrastructure.Generator;
 
 public sealed class StateInfoManager
 {
-    private static readonly Logger Log = LogManager.GetCurrentClassLogger();
     public IReadOnlyList<StateInfo> States => _stateInfos;
-    public int PassableStateCount => _stateInfos.Count(stateInfo => !stateInfo.IsImpassable);
     public int PassableLandStateCount => _stateInfos.Count(stateInfo => stateInfo.IsPassableLand);
 
     private readonly StateInfo[] _stateInfos;
+
+    private static readonly Logger Log = LogManager.GetCurrentClassLogger();
 
     [Time]
     public StateInfoManager(
