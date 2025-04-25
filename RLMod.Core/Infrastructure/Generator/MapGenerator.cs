@@ -46,7 +46,7 @@ public sealed class MapGenerator
     /// <exception cref="ArgumentException">无法解析 Province 时抛出</exception>
     public MapGenerator(
         IReadOnlyList<State> states,
-        int countriesCount = MapSettings.MaxCountry,
+        int countriesCount,
         double valueMean = 5000,
         double valueStdDev = 1000
     )
@@ -148,6 +148,7 @@ public sealed class MapGenerator
         }
 
         Log.Info("生成不可通行地块国家...");
+        // TODO: 改为分配给相邻国家
         var imPassableStates = _stateInfoManager.States.Where(s => s.IsImpassable).ToList();
         var imPassableCountry = new CountryInfo(imPassableStates[0], countryTags[0]);
         imPassableStates.RemoveFastAt(0);

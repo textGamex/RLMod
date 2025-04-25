@@ -31,6 +31,14 @@ public sealed partial class AppSettingService
     [MemoryPackOrder(2)]
     public StateGenerateSettings StateGenerate { get; }
 
+    [MemoryPackOrder(3)]
+    public int GenerateCountryCount
+    {
+        get => _generateCountryCount;
+        set => SetProperty(ref _generateCountryCount, value);
+    }
+    private int _generateCountryCount = 64;
+
     /// <summary>
     /// 全局随机数生成器的种子, 相同的种子应生成相同的 Mod
     /// </summary>

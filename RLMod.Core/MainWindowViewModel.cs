@@ -1,4 +1,5 @@
-﻿using CommunityToolkit.Mvvm.ComponentModel;
+﻿using System.Windows;
+using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.Win32;
 using NLog;
@@ -21,6 +22,9 @@ public sealed partial class MainWindowViewModel(AppSettingService settingService
     [ObservableProperty]
     private string _gameRootPath = settingService.GameRootFolderPath;
 
+    [ObservableProperty]
+    private string _generateCountryCount = settingService.GenerateCountryCount.ToString();
+
     [RelayCommand]
     private void SelectGameRootPath()
     {
@@ -38,23 +42,20 @@ public sealed partial class MainWindowViewModel(AppSettingService settingService
     [RelayCommand]
     private void GenerateRandomizerMap()
     {
+        if (!int.TryParse(GenerateCountryCount, out int countryCount) || countryCount <= 0)
+        {
+            MessageBox.Show("国家数量不能小于等于0", "错误");
+            return;
+        }
+
         string stateFolder = Path.Combine(GameRootPath, "history", "states");
         var states = GetStates(stateFolder);
-        var generator = new MapGenerator(states);
-        var countries = generator.GenerateRandomCountries();
-        Log.Info("State Sum:{Sum}", countries.Sum(country => country.States.Count));
-        foreach (var countryInfo in countries)
-        {
-            var countryStates = countryInfo.States;
-            int[] stateIds = countryStates.Select(state => state.Id).ToArray();
 
-            Log.Debug(
-                "Country: {CountryTag} occupies {StateCount} states: {}...",
-                countryInfo.Tag,
-                countryInfo.States.Count,
-                stateIds
-            );
-        }
+        var generator = new MapGenerator(states, countryCount);
+        var countries = generator.GenerateRandomCountries().ToArray();
+
+        Log.Info("State Sum:{Sum}", countries.Sum(country => country.States.Count));
+        GenerateMod(countries);
     }
 
     private void GenerateMod(IEnumerable<CountryInfo> countries)
@@ -64,24 +65,37 @@ public sealed partial class MainWindowViewModel(AppSettingService settingService
         {
             Directory.CreateDirectory(modPath);
         }
-        string modDescriptionFilePath = Path.Combine(settingService.OutputFolderPath, $"{App.ModName}.mod");
+        string historyPath = Path.Combine(modPath, "history", "states");
+        if (!Directory.Exists(historyPath))
+        {
+            Directory.CreateDirectory(historyPath);
+        }
 
-        Child[] children =
-        [
-            ChildHelper.LeafQString("name", App.ModName),
-            ChildHelper.LeafQString("path", modPath),
-            ChildHelper.LeafQString("version", "0.1.0-beta"),
-            ChildHelper.LeafQString("supported_version", "1.16.*"),
-        ];
-        File.WriteAllText(
-            modDescriptionFilePath,
-            CKPrinter.PrettyPrintStatements(children.Select(child => child.GetRawStatement("mod")))
-        );
+        CreateModDescriptionFile(modPath);
 
         foreach (var country in countries)
         {
             country.WriteToFiles();
         }
+    }
+
+    private void CreateModDescriptionFile(string modFolderPath)
+    {
+        string modDescriptionFilePath = Path.Combine(settingService.OutputFolderPath, $"{App.ModName}.mod");
+        string modFilePath = Path.Combine(modFolderPath, "descriptor.mod");
+        Child[] children =
+        [
+            ChildHelper.LeafQString("name", App.ModName),
+            ChildHelper.LeafQString("path", modFolderPath.Replace('\\', '/')),
+            ChildHelper.LeafQString("version", "0.1.0-beta"),
+            ChildHelper.LeafQString("supported_version", "1.16.*"),
+            ChildHelper.LeafQString("replace_path", "history/states")
+        ];
+        string content = CKPrinter.PrettyPrintStatements(
+            children.Select(child => child.GetRawStatement("mod"))
+        );
+        File.WriteAllText(modDescriptionFilePath, content);
+        File.WriteAllText(modFilePath, content);
     }
 
     private List<State> GetStates(string stateFolder)
@@ -188,5 +202,13 @@ public sealed partial class MainWindowViewModel(AppSettingService settingService
         }
 
         return victoryPointList.ToArray();
+    }
+
+    partial void OnGenerateCountryCountChanged(string value)
+    {
+        if (int.TryParse(value, out int result) && result > 0)
+        {
+            settingService.GenerateCountryCount = result;
+        }
     }
 }

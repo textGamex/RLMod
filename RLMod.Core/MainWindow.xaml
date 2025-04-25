@@ -26,7 +26,7 @@
             <TextBox
                 IsReadOnly="True"
                 MinWidth="120"
-                Text="{Binding GameRootPath}"
+                Text="{Binding GameRootPath, Mode=OneWay}"
                 VerticalAlignment="Top" />
             <Button
                 Command="{Binding SelectGameRootPathCommand}"
@@ -34,13 +34,18 @@
                 Margin="4,0" />
         </StackPanel>
 
-        <StackPanel Margin="0,4,0,0" Grid.Row="1" Orientation="Horizontal">
-            <TextBlock Margin="4,0" Text="输出目录"></TextBlock>
-            <TextBox
-                IsReadOnly="True"
-                MinWidth="120"
-                Text="{Binding OutputPath}"
-                VerticalAlignment="Top" />
+        <!-- <StackPanel Margin="0,4,0,0" Grid.Row="1" Orientation="Horizontal"> -->
+        <!--     <TextBlock Margin="4,0" Text="输出目录"></TextBlock> -->
+        <!--     <TextBox -->
+        <!--         IsReadOnly="True" -->
+        <!--         MinWidth="120" -->
+        <!--         Text="{Binding OutputPath}" -->
+        <!--         VerticalAlignment="Top" /> -->
+        <!-- </StackPanel> -->
+        
+        <StackPanel Margin="0, 4" Grid.Row="1" Orientation="Horizontal">
+            <TextBlock VerticalAlignment="Center" Margin="4,0" Text="生成国家数量"></TextBlock>
+            <TextBox Text="{Binding GenerateCountryCount, Mode=TwoWay}"></TextBox>
         </StackPanel>
         
         <Button
