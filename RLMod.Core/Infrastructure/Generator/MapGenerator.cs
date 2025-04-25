@@ -211,7 +211,7 @@ public sealed class MapGenerator
             }
             else // 剩下的在中间 15% 选
             {
-                var sortedCandidates = candidates
+                using var sortedCandidates = candidates
                     .AsValueEnumerable()
                     .Select(candidate => new
                     {
@@ -221,10 +221,10 @@ public sealed class MapGenerator
                         ),
                     })
                     .OrderBy(d => d.TotalDistance)
-                    .ToArray();
+                    .ToArrayPool();
 
                 // 确定中间 15% 的范围
-                int totalCandidates = sortedCandidates.Length;
+                int totalCandidates = sortedCandidates.Size;
                 int startIndex = (int)(totalCandidates * 0.425);
                 int endIndex = (int)(totalCandidates * 0.575);
                 if (startIndex >= endIndex)
@@ -233,16 +233,16 @@ public sealed class MapGenerator
                     endIndex = Math.Max(0, totalCandidates - 1);
                 }
 
-                var middleCandidates = sortedCandidates
+                using var middleCandidates = sortedCandidates
                     .AsValueEnumerable()
                     .Skip(startIndex)
                     .Take(endIndex - startIndex + 1)
                     .Select(d => d.State)
-                    .ToArray();
+                    .ToArrayPool();
 
                 selectedState =
-                    middleCandidates.Length > 0
-                        ? middleCandidates[_random.Next(middleCandidates.Length)]
+                    middleCandidates.Size > 0
+                        ? middleCandidates.Span[_random.Next(middleCandidates.Size)]
                         : candidates[_random.Next(candidates.Count)];
             }
 
@@ -263,17 +263,17 @@ public sealed class MapGenerator
     /// <returns>最优省份（State）</returns>
     private StateInfo? GetBestState(IReadOnlyCollection<StateInfo> candidates, CountryInfo[] countries)
     {
-        var validCandidates = candidates
+        using var validCandidates = candidates
             .AsValueEnumerable()
             .Where(s => !_occupiedStates.Contains(s))
-            .ToArray();
-        if (validCandidates.Length <= 0)
+            .ToArrayPool();
+        if (validCandidates.Size <= 0)
         {
             return null;
         }
 
         // 评估得分
-        var scores = validCandidates
+        using var scores = validCandidates
             .AsValueEnumerable()
             .Select(stateInfo => new
             {
@@ -281,13 +281,13 @@ public sealed class MapGenerator
                 Dispersion = GetStateDispersion(stateInfo, countries),
                 TypeMatch = GetStateTypeMatch(stateInfo, countries),
             })
-            .ToArray();
+            .ToArrayPool();
 
         var maxValues = new
         {
-            Value = scores.Max(s => s.State.Value),
-            Dispersion = scores.Max(s => s.Dispersion),
-            TypeMatch = scores.Max(s => s.TypeMatch),
+            Value = scores.AsValueEnumerable().Max(s => s.State.Value),
+            Dispersion = scores.AsValueEnumerable().Max(s => s.Dispersion),
+            TypeMatch = scores.AsValueEnumerable().Max(s => s.TypeMatch),
         };
 
         return scores

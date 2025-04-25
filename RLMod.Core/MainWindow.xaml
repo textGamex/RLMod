@@ -15,6 +15,7 @@
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
         </Grid.RowDefinitions>
 
@@ -48,10 +49,15 @@
             <TextBox Text="{Binding GenerateCountryCount, Mode=TwoWay}"></TextBox>
         </StackPanel>
         
+        <StackPanel Margin="0, 4" Grid.Row="2" Orientation="Horizontal">
+            <TextBlock VerticalAlignment="Center" Margin="4,0" Text="种子"></TextBlock>
+            <TextBox Text="{Binding GenerateCountryCount, Mode=TwoWay}"></TextBox>
+        </StackPanel>
+        
         <Button
             Command="{Binding GenerateRandomizerMapCommand}"
             Content="生成"
-            Grid.Row="2"
+            Grid.Row="3"
             HorizontalAlignment="Center" />
     </Grid>
 </Window>

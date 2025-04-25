@@ -2,6 +2,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using NLog;
 using RLMod.Core.Services;
+using ZLinq;
 
 namespace RLMod.Core.Infrastructure.Generator;
 
@@ -48,12 +49,7 @@ public sealed class CountryInfo
     /// <returns>相邻省份（State）</returns>
     public IReadOnlyCollection<StateInfo> GetPassableBorder()
     {
-        return _borders.Where(state => !state.IsImpassable).ToArray();
-    }
-
-    public IReadOnlyCollection<StateInfo> GetPassableLandBorder()
-    {
-        return _borders.Where(state => state is { IsImpassable: false, IsOcean: false }).ToArray();
+        return _borders.AsValueEnumerable().Where(state => !state.IsImpassable).ToArray();
     }
 
     public bool ContainsState(StateInfo state) => _states.Contains(state);
@@ -72,12 +68,12 @@ public sealed class CountryInfo
     private void UpdateBorders(StateInfo addedState)
     {
         // Log.Debug("更新{InitialId}的接壤省份", InitialId);
-        foreach (var edgeState in addedState.Edges.Where(s => !_states.Contains(s)))
+        foreach (var edgeState in addedState.Edges.AsValueEnumerable().Where(s => !_states.Contains(s)))
         {
             _borders.Add(edgeState);
         }
         _borders.Remove(addedState);
-        foreach (var state in _borders.Where(s => _states.Contains(s)))
+        foreach (var state in _borders.AsValueEnumerable().Where(s => _states.Contains(s)))
         {
             _borders.Remove(state);
         }
@@ -86,11 +82,12 @@ public sealed class CountryInfo
     private void UpdateCountryType()
     {
         var typeGroups = _states
+            .AsValueEnumerable()
             .Select(stateId => stateId.Type)
             .GroupBy(type => type)
             .ToDictionary(g => g.Key, g => g.Count());
 
-        var stateType = typeGroups.OrderByDescending(g => g.Value).First().Key;
+        var stateType = typeGroups.AsValueEnumerable().OrderByDescending(g => g.Value).First().Key;
         Type = stateType switch
         {
             StateType.Industrial => CountryType.Industrial,
