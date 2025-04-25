@@ -92,7 +92,7 @@ public sealed class MapGenerator
     /// </summary>
     /// <returns>国家（Country）列表</returns>
     [Time]
-    public IReadOnlyCollection<CountryInfo> GenerateRandomCountries()
+    public IEnumerable<CountryInfo> GenerateRandomCountries()
     {
         Log.Info("获取国家标签（Country Tag）表...");
 
@@ -140,24 +140,23 @@ public sealed class MapGenerator
         Log.Info("正则验证");
         ApplyValueDistribution(countries);
 
+        // 清理资源
         _occupiedStates.Clear();
         foreach (var countryInfo in countries)
         {
             countryInfo.ClearOceanStates();
         }
-        // Log.Info("生成不可通行地块国家...");
-        // var imPassableStates = _stateInfoManager.States.Where(s => s.IsImpassable).ToList();
-        // var imPassableCountry = new CountryInfo(imPassableStates.First(), countryTags[0]);
-        // foreach (var state in imPassableStates)
-        // {
-        //         imPassableCountry.AddState(state);
-        // }
-        //
-        // var finalCountries = new List<CountryInfo>(_countriesCount + 1);
-        // finalCountries.Add(imPassableCountry);
-        // finalCountries.AddRange(countries);
-        // return finalCountries;
-        return countries;
+
+        Log.Info("生成不可通行地块国家...");
+        var imPassableStates = _stateInfoManager.States.Where(s => s.IsImpassable).ToList();
+        var imPassableCountry = new CountryInfo(imPassableStates[0], countryTags[0]);
+        imPassableStates.RemoveFastAt(0);
+        foreach (var state in imPassableStates)
+        {
+            imPassableCountry.AddState(state);
+        }
+
+        return countries.Append(imPassableCountry);
     }
 
     /// <summary>
@@ -173,7 +172,7 @@ public sealed class MapGenerator
         CountryInfo[] countries
     )
     {
-        var state = GetBestState(candidates, countries, country);
+        var state = GetBestState(candidates, countries);
         if (state is null)
         {
             return false;
@@ -261,11 +260,7 @@ public sealed class MapGenerator
     /// <param name="countries">国家（Country）表</param>
     /// <param name="country"></param>
     /// <returns>最优省份（State）</returns>
-    private StateInfo? GetBestState(
-        IReadOnlyCollection<StateInfo> candidates,
-        CountryInfo[] countries,
-        CountryInfo country
-    )
+    private StateInfo? GetBestState(IReadOnlyCollection<StateInfo> candidates, CountryInfo[] countries)
     {
         var validCandidates = candidates
             .AsValueEnumerable()
