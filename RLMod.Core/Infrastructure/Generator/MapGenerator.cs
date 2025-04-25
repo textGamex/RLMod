@@ -9,7 +9,6 @@ using RLMod.Core.Infrastructure.Parser;
 using RLMod.Core.Models.Map;
 using RLMod.Core.Services;
 using ZLinq;
-using ZLinq.Linq;
 
 namespace RLMod.Core.Infrastructure.Generator;
 
@@ -400,7 +399,7 @@ public sealed class MapGenerator
         }
 
         // 生成一个顺序无关的 HashCode
-        int GetCacheHashCode(int startId, int endId)
+        static int GetCacheHashCode(int startId, int endId)
         {
             unchecked
             {
