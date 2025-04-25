@@ -176,7 +176,7 @@ public sealed class MapGenerator
     /// <returns>初始省份（State）</returns>
     private List<StateInfo> GetRandomInitialState()
     {
-        var selectedStates = new List<StateInfo>();
+        var selectedStates = new List<StateInfo>(_countriesCount);
         var candidates = _stateInfoManager
             .States.Where(s => s.IsPassableLand && !_occupiedStates.Contains(s))
             .ToList();
@@ -235,6 +235,7 @@ public sealed class MapGenerator
             _occupiedStates.Add(selectedState);
             candidates.Remove(selectedState);
         }
+
         return selectedStates;
     }
 
