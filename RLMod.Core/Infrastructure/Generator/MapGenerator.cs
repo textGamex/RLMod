@@ -26,13 +26,13 @@ public sealed class MapGenerator
     {
         _occupiedStates.Clear();
     }
-    
+
     private readonly StateInfoManager _stateInfoManager;
     private readonly int _countriesCount;
     private readonly MersenneTwister _random;
     private readonly double _valueMean;
     private readonly double _valueStdDev;
-    private readonly Dictionary<(StateInfo, int), int> _pathCache = new();
+    private readonly Dictionary<DistanceNode, int> _pathCache = new();
     private readonly AppSettingService _settings;
     private readonly CountryTagService _countryTagService;
     private readonly ProvinceService _provinceService;
@@ -102,7 +102,9 @@ public sealed class MapGenerator
         var countryTags = _countryTagService.GetCountryTags().ToList();
         Log.Info("为国家（Country）选择初始位置...");
 
+        Log.Info("计算State之间的距离分布...");
         CalculateStatesDistance();
+        Log.Info("计算State之间的距离分布完成");
         var countries = GetRandomInitialState()
             .AsValueEnumerable()
             .Select(initialState =>
@@ -320,11 +322,13 @@ public sealed class MapGenerator
     /// </summary>
     private void CalculateStatesDistance()
     {
-        foreach (var state1 in _stateInfoManager.States)
+        for (int i = 0; i < _stateInfoManager.States.Count; i++)
         {
-            foreach (var state2 in _stateInfoManager.States)
+            var start = _stateInfoManager.States[i];
+            for (int j = i; j < _stateInfoManager.States.Count; j++)
             {
-                GetStateShortestPathLength(state1, state2.Id);
+                var end = _stateInfoManager.States[j];
+                GetStateShortestPathLength(start, end.Id);
             }
         }
     }
@@ -337,14 +341,14 @@ public sealed class MapGenerator
     /// <returns>两个省份（State）之间的最短路径长度</returns>
     private int GetStateShortestPathLength(StateInfo startState, int endStateId)
     {
-        if (_pathCache.TryGetValue((startState, endStateId), out int cached))
+        if (_pathCache.TryGetValue(new DistanceNode(startState, endStateId), out int cached))
         {
             return cached;
         }
 
         if (startState.Id == endStateId)
         {
-            _pathCache[(startState, endStateId)] = 0;
+            _pathCache[new DistanceNode(startState, endStateId)] = 0;
             return 0;
         }
         var visited = new HashSet<int>();
@@ -378,7 +382,7 @@ public sealed class MapGenerator
         }
         foreach (var distance in distances)
         {
-            _pathCache[(startState, distance.Key)] = distance.Value;
+            _pathCache[new DistanceNode(startState, distance.Key)] = distance.Value;
         }
         if (distances.TryGetValue(endStateId, out int result))
         {
@@ -386,7 +390,7 @@ public sealed class MapGenerator
         }
         else
         {
-            _pathCache[(startState, endStateId)] = -1;
+            _pathCache[new DistanceNode(startState, endStateId)] = -1;
             return -1;
         }
     }
@@ -511,5 +515,45 @@ public sealed class MapGenerator
         double[] values = new double[count];
         normal.Samples(values);
         return values;
+    }
+
+    private readonly struct DistanceNode(StateInfo state, int endStateId) : IEquatable<DistanceNode>
+    {
+        // start 存 StateInfo 而不是 Id 是因为需要 Edges 信息, 只存 Id 需要多查一次字典来查找 StateInfo
+        public StateInfo Start { get; } = state;
+        public int EndStateId { get; } = endStateId;
+
+        public bool Equals(DistanceNode other)
+        {
+            return Start.Equals(other.Start) && EndStateId == other.EndStateId;
+        }
+
+        public override bool Equals(object? obj)
+        {
+            return obj is DistanceNode other && Equals(other);
+        }
+
+        public override int GetHashCode()
+        {
+            unchecked
+            {
+                if (Start.Id > endStateId)
+                {
+                    return (Start.Id * 31) ^ EndStateId;
+                }
+
+                return (EndStateId * 31) ^ Start.Id;
+            }
+        }
+
+        public static bool operator ==(DistanceNode left, DistanceNode right)
+        {
+            return left.Equals(right);
+        }
+
+        public static bool operator !=(DistanceNode left, DistanceNode right)
+        {
+            return !left.Equals(right);
+        }
     }
 }
