@@ -43,6 +43,18 @@ public sealed partial class MainWindowViewModel(AppSettingService settingService
         var generator = new MapGenerator(states);
         var countries = generator.GenerateRandomCountries();
         Log.Info("State Sum:{Sum}", countries.Sum(country => country.States.Count));
+        foreach (var countryInfo in countries)
+        {
+            var countryStates = countryInfo.States;
+            int[] stateIds = countryStates.Select(state => state.Id).ToArray();
+
+            Log.Debug(
+                "Country: {CountryTag} occupies {StateCount} states: {}...",
+                countryInfo.Tag,
+                countryInfo.States.Count,
+                stateIds
+            );
+        }
     }
 
     private void GenerateMod(IEnumerable<CountryInfo> countries)
@@ -59,7 +71,7 @@ public sealed partial class MainWindowViewModel(AppSettingService settingService
             ChildHelper.LeafQString("name", App.ModName),
             ChildHelper.LeafQString("path", modPath),
             ChildHelper.LeafQString("version", "0.1.0-beta"),
-            ChildHelper.LeafQString("supported_version", "1.16.*")
+            ChildHelper.LeafQString("supported_version", "1.16.*"),
         ];
         File.WriteAllText(
             modDescriptionFilePath,

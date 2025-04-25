@@ -1,4 +1,6 @@
 ﻿using MethodTimer;
+using NLog;
+using NLog.Fluent;
 using RLMod.Core.Helpers;
 using RLMod.Core.Infrastructure.Parser;
 using RLMod.Core.Models.Map;
@@ -7,6 +9,7 @@ namespace RLMod.Core.Infrastructure.Generator;
 
 public sealed class StateInfoManager
 {
+    private static readonly Logger Log = LogManager.GetCurrentClassLogger();
     public IReadOnlyList<StateInfo> States => _stateInfos;
     public int PassableStateCount => _stateInfos.Count(stateInfo => !stateInfo.IsImpassable);
     public int PassableLandStateCount => _stateInfos.Count(stateInfo => stateInfo.IsPassableLand);
@@ -30,11 +33,13 @@ public sealed class StateInfoManager
             var state = states[i];
             stateInfos.Add(new StateInfo(state, stateTypes[i]));
         }
-
+        Log.Debug("Read {Count} states...", states.Count);
         foreach (var oceanState in oceanStates)
         {
             stateInfos.Add(new StateInfo(oceanState.ToArray()));
         }
+        Log.Debug("Read {Count} oceanstates...", oceanStates.Count);
+        StateInfo.ResetOceanStateId();
 
         // 查找相邻的State
         for (int i = 0; i < stateInfos.Count; i++)

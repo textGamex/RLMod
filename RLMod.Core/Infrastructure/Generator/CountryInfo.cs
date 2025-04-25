@@ -14,6 +14,14 @@ public sealed class CountryInfo
 
     public IReadOnlyCollection<StateInfo> States => _states;
 
+    public void ClearOceanStates()
+    {
+        foreach (var stateInfo in _states.Where(stateInfo => stateInfo.IsOcean))
+        {
+            _states.Remove(stateInfo);
+        }
+    }
+
     private readonly HashSet<StateInfo> _states = [];
     private readonly HashSet<StateInfo> _borders = [];
 
@@ -65,21 +73,14 @@ public sealed class CountryInfo
     private void UpdateBorders(StateInfo addedState)
     {
         // Log.Debug("更新{InitialId}的接壤省份", InitialId);
-        foreach (var edgeState in addedState.Edges)
+        foreach (var edgeState in addedState.Edges.Where(s => !_states.Contains(s)))
         {
-            if (_states.Contains(edgeState) || MapGenerator.OccupiedStates.Contains(edgeState))
-            {
-                continue;
-            }
             _borders.Add(edgeState);
         }
-
         _borders.Remove(addedState);
-        foreach (
-            var edgeState in _borders.Where(stateInfo => MapGenerator.OccupiedStates.Contains(stateInfo))
-        )
+        foreach (var state in _borders.Where(s => _states.Contains(s)))
         {
-            _borders.Remove(edgeState);
+            _borders.Remove(state);
         }
     }
 
@@ -95,7 +96,7 @@ public sealed class CountryInfo
         {
             StateType.Industrial => CountryType.Industrial,
             StateType.Resource => CountryType.Resource,
-            _ => CountryType.Balanced
+            _ => CountryType.Balanced,
         };
     }
 

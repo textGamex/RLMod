@@ -97,11 +97,11 @@ public sealed class MapGenerator
         Log.Info("获取国家标签（Country Tag）表...");
 
         var countryTags = _countryTagService.GetCountryTags().ToList();
-        Log.Info("为国家（Country）选择初始位置...");
 
         Log.Info("计算State之间的距离分布...");
         CalculateStatesDistance();
         Log.Info("计算State之间的距离分布完成");
+        Log.Info("为国家（Country）选择初始位置...");
         var countries = GetRandomInitialState()
             .AsValueEnumerable()
             .Select(initialState =>
@@ -112,6 +112,7 @@ public sealed class MapGenerator
                 return new CountryInfo(initialState, countryTag);
             })
             .ToArray();
+        Log.Debug("共生产了 {Count} 个初始国家...", countries.Length);
 
         Log.Info("初始位置分配完毕...");
         Log.Info("开始扩展...");
@@ -123,7 +124,7 @@ public sealed class MapGenerator
             foreach (var country in countries)
             {
                 // Log.Debug("尝试为国家：{Id}扩展...", country.InitialId);
-                // 获取可通行省份， 包括海洋省份
+                // 获取可通行相邻省份， 包括海洋省份
                 var passableBorder = country.GetPassableBorder();
                 if (passableBorder.Count <= 0)
                 {
@@ -131,7 +132,7 @@ public sealed class MapGenerator
                     continue;
                 }
 
-                isChange = ExpandCountry(country, passableBorder, countries);
+                isChange = ExpandCountry(country, passableBorder, countries) || isChange;
             }
         } while (isChange);
 
@@ -140,8 +141,22 @@ public sealed class MapGenerator
         ApplyValueDistribution(countries);
 
         _occupiedStates.Clear();
-        StateInfo.ResetOceanStateId();
-
+        foreach (var countryInfo in countries)
+        {
+            countryInfo.ClearOceanStates();
+        }
+        // Log.Info("生成不可通行地块国家...");
+        // var imPassableStates = _stateInfoManager.States.Where(s => s.IsImpassable).ToList();
+        // var imPassableCountry = new CountryInfo(imPassableStates.First(), countryTags[0]);
+        // foreach (var state in imPassableStates)
+        // {
+        //         imPassableCountry.AddState(state);
+        // }
+        //
+        // var finalCountries = new List<CountryInfo>(_countriesCount + 1);
+        // finalCountries.Add(imPassableCountry);
+        // finalCountries.AddRange(countries);
+        // return finalCountries;
         return countries;
     }
 
@@ -158,7 +173,7 @@ public sealed class MapGenerator
         CountryInfo[] countries
     )
     {
-        var state = GetBestState(candidates, countries);
+        var state = GetBestState(candidates, countries, country);
         if (state is null)
         {
             return false;
@@ -244,18 +259,25 @@ public sealed class MapGenerator
     /// </summary>
     /// <param name="candidates">候选省份（State）</param>
     /// <param name="countries">国家（Country）表</param>
+    /// <param name="country"></param>
     /// <returns>最优省份（State）</returns>
-    private StateInfo? GetBestState(IReadOnlyCollection<StateInfo> candidates, CountryInfo[] countries)
+    private StateInfo? GetBestState(
+        IReadOnlyCollection<StateInfo> candidates,
+        CountryInfo[] countries,
+        CountryInfo country
+    )
     {
-        // 获取非海洋候选省份，如无则选择失败
-        int validCandidatesCount = candidates.AsValueEnumerable().Count(id => !_occupiedStates.Contains(id));
-        if (validCandidatesCount == 0)
+        var validCandidates = candidates
+            .AsValueEnumerable()
+            .Where(s => !_occupiedStates.Contains(s))
+            .ToArray();
+        if (validCandidates.Length <= 0)
         {
             return null;
         }
 
         // 评估得分
-        var scores = candidates
+        var scores = validCandidates
             .AsValueEnumerable()
             .Select(stateInfo => new
             {
@@ -369,7 +391,7 @@ public sealed class MapGenerator
             foreach (
                 var edgeState in currentState
                     .Edges.AsValueEnumerable()
-                    .Where(state => !state.IsPassableLand && !visited.Contains(state.Id))
+                    .Where(state => !state.IsImpassable && !visited.Contains(state.Id))
             )
             {
                 int newDistance = distances[currentState.Id] + 1;
@@ -433,7 +455,7 @@ public sealed class MapGenerator
 
             foreach (var state in country.States)
             {
-                if (state.IsImpassable)
+                if (!state.IsPassableLand)
                 {
                     continue;
                 }
