@@ -124,7 +124,7 @@ public sealed class StateInfo : IEquatable<StateInfo>
     {
         _oceanStateId = 0;
     }
-    
+
     public StateInfo(int[] provinces)
     {
         State = new State { Provinces = provinces };
@@ -219,15 +219,19 @@ public sealed class StateInfo : IEquatable<StateInfo>
 
         var state = new Node("state");
         var history = new Node("history");
-        Child[] child =
-        [
+        var child = new List<Child>(7)
+        {
             ChildHelper.Leaf("id", Id),
             ChildHelper.LeafQString("name", State.Name),
             ChildHelper.Leaf("manpower", State.Manpower),
             ChildHelper.LeafString("state_category", Category.Name),
             Child.Create(history),
-            ChildHelper.Node("provinces", State.Provinces.Select(ChildHelper.LeafValue)),
-        ];
+            ChildHelper.Node("provinces", State.Provinces.Select(ChildHelper.LeafValue))
+        };
+        if (State.IsImpassable)
+        {
+            child.Add(ChildHelper.Leaf("impassable", true));
+        }
 
         var historyChild = new List<Child>(2 + State.VictoryPoints.Length)
         {
@@ -249,7 +253,7 @@ public sealed class StateInfo : IEquatable<StateInfo>
         );
 
         history.AllArray = historyChild.ToArray();
-        state.AllArray = child;
+        state.AllArray = child.ToArray();
 
         return CKPrinter.PrettyPrintStatement(state.ToRaw);
     }
