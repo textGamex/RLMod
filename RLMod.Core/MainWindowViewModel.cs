@@ -43,7 +43,6 @@ public sealed partial class MainWindowViewModel(AppSettingService settingService
         var generator = new MapGenerator(states);
         var countries = generator.GenerateRandomCountries();
         Log.Info("State Sum:{Sum}", countries.Sum(country => country.States.Count));
-        MapGenerator.ClearOccupiedStates();
     }
 
     private void GenerateMod(IEnumerable<CountryInfo> countries)

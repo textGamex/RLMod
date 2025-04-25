@@ -120,6 +120,11 @@ public sealed class StateInfo : IEquatable<StateInfo>
 
     private static int _oceanStateId = 0;
 
+    public static void ResetOceanStateId()
+    {
+        _oceanStateId = 0;
+    }
+    
     public StateInfo(int[] provinces)
     {
         State = new State { Provinces = provinces };

@@ -21,11 +21,6 @@ public sealed class MapGenerator
     /// </summary>
     private static readonly HashSet<StateInfo> _occupiedStates = [];
 
-    public static void ClearOccupiedStates()
-    {
-        _occupiedStates.Clear();
-    }
-
     private readonly StateInfoManager _stateInfoManager;
     private readonly int _countriesCount;
     private readonly MersenneTwister _random;
@@ -38,7 +33,6 @@ public sealed class MapGenerator
     private readonly Dictionary<int, int> _pathCache = new();
     private readonly AppSettingService _settings;
     private readonly CountryTagService _countryTagService;
-    private readonly ProvinceService _provinceService;
 
     private static readonly Logger Log = LogManager.GetCurrentClassLogger();
 
@@ -59,7 +53,7 @@ public sealed class MapGenerator
     {
         _countryTagService = App.Current.Services.GetRequiredService<CountryTagService>();
         _settings = App.Current.Services.GetRequiredService<AppSettingService>();
-        _provinceService = App.Current.Services.GetRequiredService<ProvinceService>();
+        var provinceService = App.Current.Services.GetRequiredService<ProvinceService>();
         _countriesCount = countriesCount;
         _valueMean = valueMean;
         _valueStdDev = valueStdDev;
@@ -72,7 +66,7 @@ public sealed class MapGenerator
         _stateInfoManager = new StateInfoManager(
             states,
             provinces,
-            _provinceService.GetOceanProvinces(provinces)
+            provinceService.GetOceanProvinces(provinces)
         );
         _random = RandomHelper.GetRandomWithSeed();
         ValidateStateCountCheck();
@@ -144,6 +138,10 @@ public sealed class MapGenerator
         Log.Info("扩展完毕");
         Log.Info("正则验证");
         ApplyValueDistribution(countries);
+
+        _occupiedStates.Clear();
+        StateInfo.ResetOceanStateId();
+
         return countries;
     }
 
