@@ -131,10 +131,6 @@ public sealed partial class MainWindowViewModel(AppSettingService settingService
         {
             state.Manpower = manpowerValue;
         }
-        else if (leaf.Key.EqualsIgnoreCase("state_category"))
-        {
-            state.Category = leaf.ValueText;
-        }
         else if (leaf.Key.EqualsIgnoreCase("impassable") && leaf.Value.TryGetBool(out bool isImpassable))
         {
             state.IsImpassable = isImpassable;
