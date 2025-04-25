@@ -236,6 +236,7 @@ public sealed class StateInfo : IEquatable<StateInfo>
         var historyChild = new List<Child>(2 + State.VictoryPoints.Length)
         {
             ChildHelper.LeafString("owner", Owner),
+            ChildHelper.LeafQString("add_core_of", Owner)
         };
 
         if (!Buildings.IsEmpty)
