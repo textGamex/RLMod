@@ -14,5 +14,5 @@ public readonly struct Rgb(byte r, byte g, byte b) : IEquatable<Rgb>
 
     public override bool Equals(object? obj) => obj is Rgb other && Equals(other);
 
-    public override int GetHashCode() => _r * 31 + _g * 31 + _b * 31;
+    public override int GetHashCode() => unchecked(_r * 31 + _g * 31 + _b * 31);
 }
