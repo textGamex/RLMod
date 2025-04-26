@@ -14,21 +14,28 @@ namespace RLMod.Core.Infrastructure.Generator;
 
 public sealed class MapGenerator
 {
+    /// <summary>
+    /// 已经被分配的省份（State）
+    /// </summary>
     public static IReadOnlySet<StateInfo> OccupiedStates => _occupiedStates;
 
     /// <summary>
-    /// 已经被分配的 States
+    /// 已经被分配的省份（State）
     /// </summary>
     private static readonly HashSet<StateInfo> _occupiedStates = [];
 
     private readonly StateInfoManager _stateInfoManager;
+
+    /// <summary>
+    /// 目标国家（Country）数量
+    /// </summary>
     private readonly int _countriesCount;
     private readonly MersenneTwister _random;
     private readonly double _valueMean;
     private readonly double _valueStdDev;
 
     /// <summary>
-    /// Key 为起始state和结束state的hash值，Value 为距离
+    /// Key 为起始省份（State）和结束省份（State）的哈希值，Value 为距离
     /// </summary>
     private readonly Dictionary<int, int> _pathCache = new();
     private readonly AppSettingService _settings;
@@ -40,7 +47,7 @@ public sealed class MapGenerator
     /// MapGenerator 构造函数，用以初始化地图生成器。
     /// </summary>
     /// <param name="states">基础省份（State）地图</param>
-    /// <param name="countriesCount">目标国家数量，默认为 MapSettings.MaxCountry</param>
+    /// <param name="countriesCount">目标国家数量</param>
     /// <param name="valueMean">正态分布均值（μ），默认为 5000</param>
     /// <param name="valueStdDev">正态分布标准差（σ），默认为 1000</param>
     /// <exception cref="ArgumentException">无法解析 Province 时抛出</exception>
@@ -73,9 +80,9 @@ public sealed class MapGenerator
     }
 
     /// <summary>
-    /// 计算国家（Country）数量是否合理。
+    /// 检查国家（Country）数量是否合理。
     /// </summary>
-    /// <exception cref="ArgumentException">国家（Country）数量非法</exception>
+    /// <exception cref="ArgumentException">国家（Country）数量非法时抛出</exception>
     private void ValidateStateCountCheck()
     {
         int passableLandStateCount = _stateInfoManager.PassableLandStateCount;
@@ -98,9 +105,9 @@ public sealed class MapGenerator
 
         var countryTags = _countryTagService.GetCountryTags().ToList();
 
-        Log.Info("计算State之间的距离分布...");
+        Log.Info("计算省份（State）之间的距离分布...");
         CalculateStatesDistance();
-        Log.Info("计算State之间的距离分布完成");
+        Log.Info("计算省份（State）之间的距离分布完成");
         Log.Info("为国家（Country）选择初始位置...");
         var countries = GetRandomInitialState()
             .AsValueEnumerable()
@@ -123,12 +130,10 @@ public sealed class MapGenerator
 
             foreach (var country in countries)
             {
-                // Log.Debug("尝试为国家：{Id}扩展...", country.InitialId);
                 // 获取可通行相邻省份， 包括海洋省份
                 var passableBorder = country.GetPassableBorder();
                 if (passableBorder.Count <= 0)
                 {
-                    // Log.Debug("没有可扩展方向，无法扩展...");
                     continue;
                 }
 
@@ -178,8 +183,6 @@ public sealed class MapGenerator
         {
             return false;
         }
-
-        // Log.Debug("向{StateId}扩展", state.Id);
         country.AddState(state);
         _occupiedStates.Add(state);
         return true;
@@ -195,7 +198,6 @@ public sealed class MapGenerator
         var candidates = _stateInfoManager
             .States.Where(s => s.IsPassableLand && !_occupiedStates.Contains(s))
             .ToList();
-
         for (int i = 0; i < _countriesCount; i++)
         {
             // 实际保证数量足够
