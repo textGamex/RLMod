@@ -200,13 +200,11 @@ public sealed class MapGenerator
             .ToList();
         // 第一个随机选
         var selectedState = candidates[_random.Next(candidates.Count)];
-        selectedStates.Add(selectedState);
-        _occupiedStates.Add(selectedState);
-        candidates.Remove(selectedState);
+        AddState(selectedState);
+
         for (int i = 1; i < _countriesCount; i++)
         {
             // 剩下的在中间 15% 选
-
             using var sortedCandidates = candidates
                 .AsValueEnumerable()
                 .Select(candidate => new
@@ -241,12 +239,17 @@ public sealed class MapGenerator
                     ? middleCandidates.Span[_random.Next(middleCandidates.Size)]
                     : candidates[_random.Next(candidates.Count)];
 
-            selectedStates.Add(selectedState);
-            _occupiedStates.Add(selectedState);
-            candidates.Remove(selectedState);
+            AddState(selectedState);
         }
 
         return selectedStates;
+
+        void AddState(StateInfo state)
+        {
+            selectedStates.Add(state);
+            _occupiedStates.Add(state);
+            candidates.Remove(state);
+        }
     }
 
     /// <summary>
@@ -346,8 +349,9 @@ public sealed class MapGenerator
             }
         }
     }
+
     // TODO: 拆分 GetStateShortestPathLength 方法以降低复杂度
-    
+
     /// <summary>
     /// 使用 Dijkstra 算法计算两个省份（State）之间的最短路径长度，并储存起始省份单源最短路。
     /// </summary>
