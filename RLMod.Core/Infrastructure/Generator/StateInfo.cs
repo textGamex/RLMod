@@ -114,8 +114,6 @@ public sealed class StateInfo : IEquatable<StateInfo>
                 GenerateBalancedProperties(MaxFactories, resourcesLimit);
                 break;
         }
-
-        GenerateBuildings();
     }
 
     private static int _oceanStateId = 0;
@@ -183,8 +181,9 @@ public sealed class StateInfo : IEquatable<StateInfo>
         }
     }
 
-    private void GenerateBuildings()
+    public void GenerateBuildings()
     {
+        // 确保比例之和为 1
         Debug.Assert(
             Math.Abs(
                 BuildingGenerateSettingService.BuildingGenerateSettings.Sum(setting => setting.Proportion)
@@ -236,7 +235,7 @@ public sealed class StateInfo : IEquatable<StateInfo>
         var historyChild = new List<Child>(2 + State.VictoryPoints.Length)
         {
             ChildHelper.LeafString("owner", Owner),
-            ChildHelper.LeafQString("add_core_of", Owner)
+            ChildHelper.LeafString("add_core_of", Owner)
         };
 
         if (!Buildings.IsEmpty)

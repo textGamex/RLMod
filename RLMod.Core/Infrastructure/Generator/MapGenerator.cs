@@ -142,11 +142,17 @@ public sealed class MapGenerator
         } while (isChange);
 
         Log.Info("扩展完毕");
-        Log.Info("正则验证");
+
         ApplyValueDistribution(countries);
 
         // 清理资源
         _occupiedStates.Clear();
+
+        foreach (var country in countries)
+        {
+            country.GenerateStatesBuildings();
+        }
+
         foreach (var countryInfo in countries)
         {
             countryInfo.ClearOceanStates();
@@ -479,7 +485,7 @@ public sealed class MapGenerator
         {
             double factoryRatio = ratio * 1.2;
             factoryRatio = Math.Max(industrialFactoryMinRatio, Math.Min(1.2, factoryRatio));
-            // BUG: 不生效, 与现有的工厂数量无关
+
             state.Factories = MathHelper.ClampValue(
                 (int)(originalFactories * factoryRatio),
                 min: (int)(originalFactories * industrialFactoryMinRatio),

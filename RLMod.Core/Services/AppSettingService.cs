@@ -7,6 +7,7 @@ namespace RLMod.Core.Services;
 [MemoryPackable]
 public sealed partial class AppSettingService
 {
+    // TODO: 换成Json
     [MemoryPackOrder(0)]
     public string GameRootFolderPath
     {
