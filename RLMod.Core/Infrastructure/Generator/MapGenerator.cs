@@ -198,55 +198,48 @@ public sealed class MapGenerator
         var candidates = _stateInfoManager
             .States.Where(s => s.IsPassableLand && !_occupiedStates.Contains(s))
             .ToList();
-        for (int i = 0; i < _countriesCount; i++)
+        // 第一个随机选
+        var selectedState = candidates[_random.Next(candidates.Count)];
+        selectedStates.Add(selectedState);
+        _occupiedStates.Add(selectedState);
+        candidates.Remove(selectedState);
+        for (int i = 1; i < _countriesCount; i++)
         {
-            // 实际保证数量足够
-            if (candidates.Count == 0)
-            {
-                break;
-            }
+            // 剩下的在中间 15% 选
 
-            StateInfo selectedState;
-            if (selectedStates.Count == 0) // 第一个随机选
-            {
-                selectedState = candidates[_random.Next(candidates.Count)];
-            }
-            else // 剩下的在中间 15% 选
-            {
-                using var sortedCandidates = candidates
-                    .AsValueEnumerable()
-                    .Select(candidate => new
-                    {
-                        State = candidate,
-                        TotalDistance = selectedStates.Sum(selected =>
-                            GetStateShortestPathLength(candidate, selected.Id)
-                        ),
-                    })
-                    .OrderBy(d => d.TotalDistance)
-                    .ToArrayPool();
-
-                // 确定中间 15% 的范围
-                int totalCandidates = sortedCandidates.Size;
-                int startIndex = (int)(totalCandidates * 0.425);
-                int endIndex = (int)(totalCandidates * 0.575);
-                if (startIndex >= endIndex)
+            using var sortedCandidates = candidates
+                .AsValueEnumerable()
+                .Select(candidate => new
                 {
-                    startIndex = 0;
-                    endIndex = Math.Max(0, totalCandidates - 1);
-                }
+                    State = candidate,
+                    TotalDistance = selectedStates.Sum(selected =>
+                        GetStateShortestPathLength(candidate, selected.Id)
+                    ),
+                })
+                .OrderBy(d => d.TotalDistance)
+                .ToArrayPool();
 
-                using var middleCandidates = sortedCandidates
-                    .AsValueEnumerable()
-                    .Skip(startIndex)
-                    .Take(endIndex - startIndex + 1)
-                    .Select(d => d.State)
-                    .ToArrayPool();
-
-                selectedState =
-                    middleCandidates.Size > 0
-                        ? middleCandidates.Span[_random.Next(middleCandidates.Size)]
-                        : candidates[_random.Next(candidates.Count)];
+            // 确定中间 15% 的范围
+            int totalCandidates = sortedCandidates.Size;
+            int startIndex = (int)(totalCandidates * 0.425);
+            int endIndex = (int)(totalCandidates * 0.575);
+            if (startIndex >= endIndex)
+            {
+                startIndex = 0;
+                endIndex = Math.Max(0, totalCandidates - 1);
             }
+
+            using var middleCandidates = sortedCandidates
+                .AsValueEnumerable()
+                .Skip(startIndex)
+                .Take(endIndex - startIndex + 1)
+                .Select(d => d.State)
+                .ToArrayPool();
+
+            selectedState =
+                middleCandidates.Size > 0
+                    ? middleCandidates.Span[_random.Next(middleCandidates.Size)]
+                    : candidates[_random.Next(candidates.Count)];
 
             selectedStates.Add(selectedState);
             _occupiedStates.Add(selectedState);
