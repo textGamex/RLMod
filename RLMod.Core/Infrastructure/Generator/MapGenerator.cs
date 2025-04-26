@@ -17,11 +17,6 @@ public sealed class MapGenerator
     /// <summary>
     /// 已经被分配的省份（State）
     /// </summary>
-    public static IReadOnlySet<StateInfo> OccupiedStates => _occupiedStates;
-
-    /// <summary>
-    /// 已经被分配的省份（State）
-    /// </summary>
     private static readonly HashSet<StateInfo> _occupiedStates = [];
 
     private readonly StateInfoManager _stateInfoManager;
@@ -101,47 +96,8 @@ public sealed class MapGenerator
     [Time]
     public IEnumerable<CountryInfo> GenerateRandomCountries()
     {
-        Log.Info("获取国家标签（Country Tag）表...");
-
-        var countryTags = _countryTagService.GetCountryTags().ToList();
-
-        Log.Info("计算省份（State）之间的距离分布...");
-        CalculateStatesDistance();
-        Log.Info("计算省份（State）之间的距离分布完成");
-        Log.Info("为国家（Country）选择初始位置...");
-        var countries = GetRandomInitialState()
-            .AsValueEnumerable()
-            .Select(initialState =>
-            {
-                int index = _random.Next(countryTags.Count);
-                string countryTag = countryTags[index];
-                countryTags.RemoveFastAt(index);
-                return new CountryInfo(initialState, countryTag);
-            })
-            .ToArray();
+        var countries = AssignStatesToCountries();
         Log.Debug("共生产了 {Count} 个初始国家...", countries.Length);
-
-        Log.Info("初始位置分配完毕...");
-        Log.Info("开始扩展...");
-        bool isChange;
-        do
-        {
-            isChange = false;
-
-            foreach (var country in countries)
-            {
-                // 获取可通行相邻省份， 包括海洋省份
-                var passableBorder = country.GetPassableBorder();
-                if (passableBorder.Count <= 0)
-                {
-                    continue;
-                }
-
-                isChange = ExpandCountry(country, passableBorder, countries) || isChange;
-            }
-        } while (isChange);
-
-        Log.Info("扩展完毕");
 
         ApplyValueDistribution(countries);
 
@@ -160,7 +116,7 @@ public sealed class MapGenerator
         Log.Info("生成不可通行地块国家...");
         // TODO: 改为分配给相邻国家
         var imPassableStates = _stateInfoManager.States.Where(s => s.IsImpassable).ToList();
-        var imPassableCountry = new CountryInfo(imPassableStates[0], countryTags[0]);
+        var imPassableCountry = new CountryInfo(imPassableStates[0], "");
         imPassableStates.RemoveFastAt(0);
         foreach (var state in imPassableStates)
         {
@@ -170,6 +126,54 @@ public sealed class MapGenerator
         return countries.Append(imPassableCountry);
     }
 
+    [Time]
+    private CountryInfo[] AssignStatesToCountries()
+    {
+        Log.Info("计算省份（State）之间的距离分布...");
+        CalculateAndCacheStatesDistance();
+        Log.Info("计算省份（State）之间的距离分布完成");
+
+        var countryTags = _countryTagService.GetCountryTags().ToList();
+
+        var countries = GetRandomInitialState()
+            .AsValueEnumerable()
+            .Select(initialState =>
+            {
+                int index = _random.Next(countryTags.Count);
+                string countryTag = countryTags[index];
+                countryTags.RemoveFastAt(index);
+                return new CountryInfo(initialState, countryTag);
+            })
+            .ToArray();
+
+        Log.Info("开始扩展...");
+        AssignStates(countries);
+        Log.Info("扩展完毕");
+
+        return countries;
+    }
+
+    private void AssignStates(CountryInfo[] countries)
+    {
+        bool isChange;
+        do
+        {
+            isChange = false;
+
+            foreach (var country in countries)
+            {
+                // 获取可通行相邻省份， 包括海洋省份
+                var passableBorder = country.GetPassableBorder();
+                if (passableBorder.Count <= 0)
+                {
+                    continue;
+                }
+
+                isChange = TryExpandCountry(country, passableBorder, countries) || isChange;
+            }
+        } while (isChange);
+    }
+
     /// <summary>
     /// 尝试扩展国家（Country）。
     /// </summary>
@@ -177,7 +181,7 @@ public sealed class MapGenerator
     /// <param name="candidates">候选省份（State）</param>
     /// <param name="countries">国家（country）表</param>
     /// <returns>是否扩展成功</returns>
-    private bool ExpandCountry(
+    private bool TryExpandCountry(
         CountryInfo country,
         IReadOnlyCollection<StateInfo> candidates,
         CountryInfo[] countries
@@ -342,7 +346,7 @@ public sealed class MapGenerator
     /// <summary>
     /// 计算所有省份（State）之间的最短路径长度。
     /// </summary>
-    private void CalculateStatesDistance()
+    private void CalculateAndCacheStatesDistance()
     {
         for (int i = 0; i < _stateInfoManager.States.Count; i++)
         {
