@@ -346,7 +346,8 @@ public sealed class MapGenerator
             }
         }
     }
-
+    // TODO: 拆分 GetStateShortestPathLength 方法以降低复杂度
+    
     /// <summary>
     /// 使用 Dijkstra 算法计算两个省份（State）之间的最短路径长度，并储存起始省份单源最短路。
     /// </summary>
