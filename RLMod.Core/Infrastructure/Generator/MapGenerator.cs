@@ -147,15 +147,14 @@ public sealed class MapGenerator
 
         // 清理资源
         _occupiedStates.Clear();
+        foreach (var countryInfo in countries)
+        {
+            countryInfo.ClearOceanStates();
+        }
 
         foreach (var country in countries)
         {
             country.GenerateStatesBuildings();
-        }
-
-        foreach (var countryInfo in countries)
-        {
-            countryInfo.ClearOceanStates();
         }
 
         Log.Info("生成不可通行地块国家...");

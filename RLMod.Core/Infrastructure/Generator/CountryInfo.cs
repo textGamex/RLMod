@@ -16,7 +16,7 @@ public sealed class CountryInfo
 
     public void ClearOceanStates()
     {
-        foreach (var stateInfo in _states.Where(stateInfo => stateInfo.IsOcean))
+        foreach (var stateInfo in _states.AsValueEnumerable().Where(stateInfo => stateInfo.IsOcean))
         {
             _states.Remove(stateInfo);
         }
