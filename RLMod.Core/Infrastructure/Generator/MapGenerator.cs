@@ -254,7 +254,6 @@ public sealed class MapGenerator
     /// </summary>
     /// <param name="candidates">候选省份（State）</param>
     /// <param name="countries">国家（Country）表</param>
-    /// <param name="country"></param>
     /// <returns>最优省份（State）</returns>
     private StateInfo? GetBestState(IReadOnlyCollection<StateInfo> candidates, CountryInfo[] countries)
     {
