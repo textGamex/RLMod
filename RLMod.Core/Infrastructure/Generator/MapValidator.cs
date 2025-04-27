@@ -46,7 +46,7 @@ public static class Validator
 
                 foreach (
                     var edgeState in stateMap[current]
-                        .Edges.AsValueEnumerable()
+                        .AdjacentStates.AsValueEnumerable()
                         .Where(state => country.ContainsState(state) || state.IsImpassable)
                 )
                 {

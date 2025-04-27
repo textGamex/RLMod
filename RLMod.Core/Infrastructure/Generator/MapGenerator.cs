@@ -113,17 +113,28 @@ public sealed class MapGenerator
             country.GenerateStatesBuildings();
         }
 
-        Log.Info("生成不可通行地块国家...");
-        // TODO: 改为分配给相邻国家
-        var imPassableStates = _stateInfoManager.States.Where(s => s.IsImpassable).ToList();
-        var imPassableCountry = new CountryInfo(imPassableStates[0], "");
-        imPassableStates.RemoveFastAt(0);
-        foreach (var state in imPassableStates)
-        {
-            imPassableCountry.AddState(state);
-        }
+        AssignImpassableStates();
 
-        return countries.Append(imPassableCountry);
+        return countries;
+    }
+
+    private void AssignImpassableStates()
+    {
+        var impassableStates = _stateInfoManager
+            .States.AsValueEnumerable()
+            .Where(state => state.IsImpassable);
+        foreach (var state in impassableStates)
+        {
+            foreach (var adjacent in state.AdjacentStates)
+            {
+                if (adjacent is { IsPassableLand: true, Owner: not null })
+                {
+                    adjacent.Owner.AddState(state);
+                    _occupiedStates.Add(state);
+                    break;
+                }
+            }
+        }
     }
 
     [Time]
@@ -394,7 +405,7 @@ public sealed class MapGenerator
 
             foreach (
                 var edgeState in currentState
-                    .Edges.AsValueEnumerable()
+                    .AdjacentStates.AsValueEnumerable()
                     .Where(state => !state.IsImpassable && !visited.Contains(state.Id))
             )
             {

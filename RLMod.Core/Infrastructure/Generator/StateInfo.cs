@@ -14,11 +14,11 @@ namespace RLMod.Core.Infrastructure.Generator;
 public sealed class StateInfo : IEquatable<StateInfo>
 {
     public int Id { get; }
-    public string Owner { get; set; } = string.Empty;
+    public CountryInfo? Owner { get; set; }
     public State State { get; }
     public int Factories { get; set; }
     public int Resources { get; set; }
-    public IEnumerable<StateInfo> Edges => _adjacent;
+    public IEnumerable<StateInfo> AdjacentStates => _adjacentStates;
     public StateType Type { get; }
     public StateCategory Category { get; }
     public bool IsImpassable { get; }
@@ -54,7 +54,7 @@ public sealed class StateInfo : IEquatable<StateInfo>
                 * AppSettingService.StateGenerate.VictoryPointWeight;
     }
 
-    private StateInfo[] _adjacent = [];
+    private StateInfo[] _adjacentStates = [];
     private readonly MersenneTwister _random;
 
     private static readonly StateCategoryService StateCategoryService =
@@ -135,7 +135,7 @@ public sealed class StateInfo : IEquatable<StateInfo>
 
     public void SetAdjacent(StateInfo[] adjacent)
     {
-        _adjacent = adjacent;
+        _adjacentStates = adjacent;
     }
 
     private StateCategory GetRandomStateCategory(int minSlots, int maxSlots)
@@ -215,6 +215,7 @@ public sealed class StateInfo : IEquatable<StateInfo>
     public string ToScript()
     {
         Debug.Assert(State.Provinces.Length != 0);
+        Debug.Assert(Owner is not null);
 
         var state = new Node("state");
         var history = new Node("history");
@@ -234,8 +235,8 @@ public sealed class StateInfo : IEquatable<StateInfo>
 
         var historyChild = new List<Child>(2 + State.VictoryPoints.Length)
         {
-            ChildHelper.LeafString("owner", Owner),
-            ChildHelper.LeafString("add_core_of", Owner)
+            ChildHelper.LeafString("owner", Owner.Tag),
+            ChildHelper.LeafString("add_core_of", Owner.Tag)
         };
 
         if (!Buildings.IsEmpty)

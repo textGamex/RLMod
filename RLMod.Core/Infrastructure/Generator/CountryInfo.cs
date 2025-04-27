@@ -59,7 +59,7 @@ public sealed class CountryInfo
         Debug.Assert(!string.IsNullOrWhiteSpace(Tag));
         Debug.Assert(!_states.Contains(state));
 
-        state.Owner = Tag;
+        state.Owner = this;
         _states.Add(state);
         UpdateBorders(state);
         UpdateCountryType();
@@ -67,8 +67,9 @@ public sealed class CountryInfo
 
     private void UpdateBorders(StateInfo addedState)
     {
-        // Log.Debug("更新{InitialId}的接壤省份", InitialId);
-        foreach (var edgeState in addedState.Edges.AsValueEnumerable().Where(s => !_states.Contains(s)))
+        foreach (
+            var edgeState in addedState.AdjacentStates.AsValueEnumerable().Where(s => !_states.Contains(s))
+        )
         {
             _borders.Add(edgeState);
         }
@@ -81,6 +82,7 @@ public sealed class CountryInfo
 
     private void UpdateCountryType()
     {
+        // TODO: 优化
         var typeGroups = _states
             .AsValueEnumerable()
             .Select(stateId => stateId.Type)
