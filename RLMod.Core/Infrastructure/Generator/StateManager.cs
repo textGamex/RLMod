@@ -30,7 +30,11 @@ public sealed class StateInfoManager
         for (int i = 0; i < states.Count; i++)
         {
             var state = states[i];
-            stateInfos.Add(new StateInfo(state, stateTypes[i]));
+
+            bool isCoastal = state.Provinces.Any(province =>
+                provinces.TryGetValue(province, out var value) && value.IsCoastal
+            );
+            stateInfos.Add(new StateInfo(state, isCoastal, stateTypes[i]));
         }
         Log.Debug("Read {Count} states...", states.Count);
         foreach (var oceanState in oceanStates)

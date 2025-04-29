@@ -7,7 +7,9 @@ using ParadoxPower.Parser;
 using ParadoxPower.Process;
 using RLMod.Core.Helpers;
 using RLMod.Core.Models.Map;
+using RLMod.Core.Models.Settings;
 using RLMod.Core.Services;
+using ZLinq;
 
 namespace RLMod.Core.Infrastructure.Generator;
 
@@ -23,6 +25,7 @@ public sealed class StateInfo : IEquatable<StateInfo>
     public StateCategory Category { get; }
     public bool IsImpassable { get; }
     public bool IsOcean { get; }
+    public bool IsCoastal { get; }
     public bool IsPassableLand => !IsImpassable && !IsOcean;
     public int MaxFactories { get; }
     public int TotalVictoryPoint { get; }
@@ -57,6 +60,8 @@ public sealed class StateInfo : IEquatable<StateInfo>
     private StateInfo[] _adjacentStates = [];
     private readonly MersenneTwister _random;
 
+    private static int _oceanStateId = 0;
+
     private static readonly StateCategoryService StateCategoryService =
         App.Current.Services.GetRequiredService<StateCategoryService>();
     private static readonly AppSettingService AppSettingService =
@@ -66,13 +71,14 @@ public sealed class StateInfo : IEquatable<StateInfo>
     private static readonly BuildingService BuildingService =
         App.Current.Services.GetRequiredService<BuildingService>();
 
-    public StateInfo(State state, StateType type)
+    public StateInfo(State state, bool isCoastal, StateType type)
     {
         Id = state.Id;
         _random = RandomHelper.GetRandomWithSeed();
 
         State = state;
         Type = type;
+        IsCoastal = isCoastal;
         IsImpassable = state.IsImpassable;
         TotalVictoryPoint = state.VictoryPoints.Sum(point => point.Value);
 
@@ -116,13 +122,6 @@ public sealed class StateInfo : IEquatable<StateInfo>
         }
     }
 
-    private static int _oceanStateId = 0;
-
-    public static void ResetOceanStateId()
-    {
-        _oceanStateId = 0;
-    }
-
     public StateInfo(int[] provinces)
     {
         State = new State { Provinces = provinces };
@@ -131,6 +130,11 @@ public sealed class StateInfo : IEquatable<StateInfo>
         _random = RandomHelper.GetRandomWithSeed();
         Id = --_oceanStateId;
         IsOcean = true;
+    }
+
+    public static void ResetOceanStateId()
+    {
+        _oceanStateId = 0;
     }
 
     public void SetAdjacent(StateInfo[] adjacent)
@@ -191,9 +195,19 @@ public sealed class StateInfo : IEquatable<StateInfo>
             ) < 0.0001
         );
 
-        foreach (var setting in BuildingGenerateSettingService.BuildingGenerateSettings)
+        // 将替换生成类型放到最后处理
+        foreach (
+            var setting in BuildingGenerateSettingService
+                .BuildingGenerateSettings.AsValueEnumerable()
+                .OrderBy(building => building.Type == BuildingGenerateType.Replace)
+        )
         {
-            if (setting.IsNecessary)
+            if (setting.NeedCoastal && !IsCoastal)
+            {
+                continue;
+            }
+
+            if (setting.Type == BuildingGenerateType.Necessary)
             {
                 double level = Normal.Sample(_random, setting.Mean, setting.StandardDeviation);
                 Buildings.Add(
@@ -205,7 +219,25 @@ public sealed class StateInfo : IEquatable<StateInfo>
                     )
                 );
             }
-            else
+            else if (setting.Type == BuildingGenerateType.Replace)
+            {
+                Debug.Assert(setting.ReplaceSetting is not null);
+
+                var replaceSetting = setting.ReplaceSetting;
+                int replaceBuildingLevel = Buildings.GetLevel(replaceSetting.ReplaceName);
+                int level = Math.Min(
+                    (int)Math.Round(replaceBuildingLevel * replaceSetting.Proportion),
+                    BuildingService[setting.Name].MaxLevel
+                );
+                if (level == 0)
+                {
+                    continue;
+                }
+
+                Buildings.Add(setting.Name, level);
+                Buildings.SetLevel(replaceSetting.ReplaceName, replaceBuildingLevel - level);
+            }
+            else if (setting.Type == BuildingGenerateType.Proportion)
             {
                 Buildings.Add(setting.Name, (int)Math.Round(Factories * setting.Proportion));
             }
