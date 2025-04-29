@@ -22,6 +22,7 @@ public sealed class StateInfoManager
         IReadOnlyCollection<IEnumerable<int>> oceanStates
     )
     {
+        StateInfo.ResetOceanStateId();
         var stateInfos = new List<StateInfo>(states.Count + oceanStates.Count);
         var stateAdjacentMap = new Dictionary<int, List<StateInfo>>(states.Count);
 
