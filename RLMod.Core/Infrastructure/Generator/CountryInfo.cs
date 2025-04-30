@@ -82,14 +82,17 @@ public sealed class CountryInfo
 
     private void UpdateCountryType()
     {
-        // TODO: 优化
-        var typeGroups = _states
+        var mostStateType = _states
             .AsValueEnumerable()
-            .Select(stateId => stateId.Type)
-            .GroupBy(type => type)
-            .ToDictionary(g => g.Key, g => g.Count());
+            .GroupBy(stateId => stateId.Type)
+            .MaxBy(state => state.Count());
 
-        var stateType = typeGroups.AsValueEnumerable().OrderByDescending(g => g.Value).First().Key;
+        if (mostStateType is null)
+        {
+            return;
+        }
+
+        var stateType = mostStateType.Key;
         Type = stateType switch
         {
             StateType.Industrial => CountryType.Industrial,
