@@ -99,13 +99,14 @@ public sealed class CountryInfo
     }
 
     /// <summary>
-    /// 生成 State 上的建筑, 应在所有 State 完成分配后调用.
+    /// 生成 State 上的建筑和资源, 应在所有 State 完成分配后调用.
     /// </summary>
-    public void GenerateStatesBuildings()
+    public void GenerateStatesBuildingsAndResources()
     {
         foreach (var state in _states)
         {
             state.GenerateBuildings();
+            state.GenerateResources();
         }
     }
 

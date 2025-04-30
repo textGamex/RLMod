@@ -58,6 +58,7 @@ public partial class App : Application
 
         builder.Services.AddSingleton(AppSettingService.Load());
         builder.Services.AddSingleton<BuildingGenerateSettingService>();
+        builder.Services.AddSingleton<ResourceGenerateSettingService>();
 
         // 添加 NLog 日志
         builder.Logging.ClearProviders();

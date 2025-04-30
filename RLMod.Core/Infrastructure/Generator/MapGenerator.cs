@@ -110,7 +110,7 @@ public sealed class MapGenerator
 
         foreach (var country in countries)
         {
-            country.GenerateStatesBuildings();
+            country.GenerateStatesBuildingsAndResources();
         }
 
         AssignImpassableStates();
@@ -232,7 +232,7 @@ public sealed class MapGenerator
                     State = candidate,
                     TotalDistance = selectedStates.Sum(selected =>
                         GetStateShortestPathLength(candidate, selected.Id)
-                    ),
+                    )
                 })
                 .OrderBy(d => d.TotalDistance)
                 .ToArrayPool();
@@ -492,15 +492,15 @@ public sealed class MapGenerator
         const double resourceResourceMinRatio = 0.8;
 
         var type = state.Type;
-        int originalFactories = state.Factories;
-        int originalResources = state.Resources;
+        int originalFactories = state.FactorySum;
+        int originalResources = state.ResourceSum;
 
         if (type == StateType.Industrial)
         {
             double factoryRatio = ratio * 1.2;
             factoryRatio = Math.Max(industrialFactoryMinRatio, Math.Min(1.2, factoryRatio));
 
-            state.Factories = MathHelper.ClampValue(
+            state.FactorySum = MathHelper.ClampValue(
                 (int)(originalFactories * factoryRatio),
                 min: (int)(originalFactories * industrialFactoryMinRatio),
                 max: _settings.StateGenerate.MaxFactoryNumber
@@ -508,7 +508,7 @@ public sealed class MapGenerator
 
             double resourceRatio = ratio * 0.8;
             resourceRatio = Math.Min(industrialResourceMaxRatio, resourceRatio);
-            state.Resources = MathHelper.ClampValue(
+            state.ResourceSum = MathHelper.ClampValue(
                 (int)(originalResources * resourceRatio),
                 max: _settings.StateGenerate.MaxResourceNumber
             );
@@ -517,13 +517,13 @@ public sealed class MapGenerator
         {
             double resourceRatio = ratio * 1.2;
             resourceRatio = Math.Max(resourceResourceMinRatio, Math.Min(1.2, resourceRatio));
-            state.Resources = MathHelper.ClampValue(
+            state.ResourceSum = MathHelper.ClampValue(
                 (int)(originalResources * resourceRatio),
                 min: (int)(originalResources * resourceResourceMinRatio),
                 max: _settings.StateGenerate.MaxResourceNumber
             );
 
-            state.Factories = MathHelper.ClampValue(
+            state.FactorySum = MathHelper.ClampValue(
                 (int)(originalFactories * ratio * 0.8),
                 max: _settings.StateGenerate.MaxFactoryNumber
             );
@@ -533,12 +533,12 @@ public sealed class MapGenerator
             double factoryRatio = ratio * (0.9 + _random.NextDouble() * 0.2); // 0.9-1.1
             double resourceRatio = ratio * (0.9 + _random.NextDouble() * 0.2);
 
-            state.Factories = MathHelper.ClampValue(
+            state.FactorySum = MathHelper.ClampValue(
                 (int)(originalFactories * factoryRatio),
                 min: (int)(originalFactories * 0.7),
                 max: _settings.StateGenerate.MaxFactoryNumber
             );
-            state.Resources = MathHelper.ClampValue(
+            state.ResourceSum = MathHelper.ClampValue(
                 (int)(originalResources * resourceRatio),
                 min: (int)(originalResources * 0.7),
                 max: _settings.StateGenerate.MaxResourceNumber

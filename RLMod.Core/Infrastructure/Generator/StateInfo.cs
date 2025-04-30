@@ -33,12 +33,12 @@ public sealed class StateInfo : IEquatable<StateInfo>
     /// <summary>
     /// 省份（State）工业值。
     /// </summary>
-    public int Factories { get; set; }
+    public int FactorySum { get; set; }
 
     /// <summary>
     /// 省份（State）资源值。
     /// </summary>
-    public int Resources { get; set; }
+    public int ResourceSum { get; set; }
 
     /// <summary>
     /// 相邻省份（State）表。
@@ -90,6 +90,8 @@ public sealed class StateInfo : IEquatable<StateInfo>
     /// </summary>
     public StateBuildings Buildings { get; } = new();
 
+    public StateResource Resources { get; } = new();
+
     /// <summary>
     /// 省份（State）的价值。
     /// </summary>
@@ -102,7 +104,7 @@ public sealed class StateInfo : IEquatable<StateInfo>
     private double GetValue()
     {
         // 加权百分制计算价值
-        return (double)Factories
+        return (double)FactorySum
                 / AppSettingService.StateGenerate.MaxFactoryNumber
                 * 100
                 * AppSettingService.StateGenerate.FactoryNumberWeight
@@ -110,7 +112,7 @@ public sealed class StateInfo : IEquatable<StateInfo>
                 / AppSettingService.StateGenerate.MaxFactoryNumber
                 * 100
                 * AppSettingService.StateGenerate.MaxFactoryNumberWeight
-            + (double)Resources
+            + (double)ResourceSum
                 / AppSettingService.StateGenerate.MaxResourceNumber
                 * 100
                 * AppSettingService.StateGenerate.ResourcesWeight
@@ -136,6 +138,8 @@ public sealed class StateInfo : IEquatable<StateInfo>
         App.Current.Services.GetRequiredService<BuildingGenerateSettingService>();
     private static readonly BuildingService BuildingService =
         App.Current.Services.GetRequiredService<BuildingService>();
+    private static readonly ResourceGenerateSettingService ResourceGenerateSettingService =
+        App.Current.Services.GetRequiredService<ResourceGenerateSettingService>();
 
     /// <summary>
     /// 陆地省份构造函数。
@@ -241,10 +245,10 @@ public sealed class StateInfo : IEquatable<StateInfo>
     /// <param name="maxResources">最大资源值</param>
     private void GenerateIndustrialProperties(int maxFactories, int maxResources)
     {
-        Factories = _random.Next((int)(maxFactories * 0.5), (int)(maxFactories * 0.7) + 1);
+        FactorySum = _random.Next((int)(maxFactories * 0.5), (int)(maxFactories * 0.7) + 1);
 
-        int resourceMax = _random.Next(Factories * 10, (int)(maxResources * 0.3) + 1);
-        Resources = _random.Next(0, resourceMax + 1);
+        int resourceMax = _random.Next(FactorySum * 10, (int)(maxResources * 0.3) + 1);
+        ResourceSum = _random.Next(0, resourceMax + 1);
     }
 
     /// <summary>
@@ -254,10 +258,10 @@ public sealed class StateInfo : IEquatable<StateInfo>
     /// <param name="maxResources">最大资源值</param>
     private void GenerateResourceProperties(int maxFactories, int maxResources)
     {
-        Resources = _random.Next((int)(maxResources * 0.7), maxResources + 1);
+        ResourceSum = _random.Next((int)(maxResources * 0.7), maxResources + 1);
 
-        int factoryMax = Math.Min((int)(Resources * 0.005), (int)(maxFactories * 0.7));
-        Factories = _random.Next(0, factoryMax + 1);
+        int factoryMax = Math.Min((int)(ResourceSum * 0.005), (int)(maxFactories * 0.7));
+        FactorySum = _random.Next(0, factoryMax + 1);
     }
 
     /// <summary>
@@ -267,14 +271,15 @@ public sealed class StateInfo : IEquatable<StateInfo>
     /// <param name="maxResources">最大资源值</param>
     private void GenerateBalancedProperties(int maxFactories, int maxResources)
     {
-        Factories = _random.Next((int)(maxFactories * 0.3), (int)(maxFactories * 0.7) + 1);
-        Resources = _random.Next((int)(maxResources * 0.3), (int)(maxResources * 0.7) + 1);
+        FactorySum = _random.Next((int)(maxFactories * 0.3), (int)(maxFactories * 0.7) + 1);
+        ResourceSum = _random.Next((int)(maxResources * 0.3), (int)(maxResources * 0.7) + 1);
 
-        double resourceStandard = Factories * 50.0;
-        while (Math.Abs(Resources - resourceStandard) > 50)
+        double resourceStandard = FactorySum * 50.0;
+        while (Math.Abs(ResourceSum - resourceStandard) > 50)
         {
-            Resources = (int)(resourceStandard + _random.Next(26)) * (Resources > resourceStandard ? 1 : -1);
-            Resources = Math.Max(0, Math.Min(maxResources, Resources));
+            ResourceSum =
+                (int)(resourceStandard + _random.Next(26)) * (ResourceSum > resourceStandard ? 1 : -1);
+            ResourceSum = Math.Max(0, Math.Min(maxResources, ResourceSum));
         }
     }
 
@@ -283,18 +288,10 @@ public sealed class StateInfo : IEquatable<StateInfo>
     /// </summary>
     public void GenerateBuildings()
     {
-        // 确保比例之和为 1
-        Debug.Assert(
-            Math.Abs(
-                BuildingGenerateSettingService.BuildingGenerateSettings.Sum(setting => setting.Proportion)
-                    - 1.0
-            ) < 0.0001
-        );
-
         // 将替换生成类型放到最后处理
         foreach (
             var setting in BuildingGenerateSettingService
-                .BuildingGenerateSettings.AsValueEnumerable()
+                .Settings.AsValueEnumerable()
                 .OrderBy(building => building.Type == BuildingGenerateType.Replace)
         )
         {
@@ -335,8 +332,17 @@ public sealed class StateInfo : IEquatable<StateInfo>
             }
             else if (setting.Type == BuildingGenerateType.Proportion)
             {
-                Buildings.Add(setting.Name, (int)Math.Round(Factories * setting.Proportion));
+                Buildings.Add(setting.Name, (int)Math.Round(FactorySum * setting.Proportion));
             }
+        }
+    }
+
+    public void GenerateResources()
+    {
+        foreach (var setting in ResourceGenerateSettingService.Settings)
+        {
+            int amount = (int)Math.Round(ResourceSum * setting.Proportion);
+            Resources.Add(setting.Name, amount);
         }
     }
 
@@ -347,7 +353,7 @@ public sealed class StateInfo : IEquatable<StateInfo>
 
         var state = new Node("state");
         var history = new Node("history");
-        var child = new List<Child>(7)
+        var child = new List<Child>(8)
         {
             ChildHelper.Leaf("id", Id),
             ChildHelper.LeafQString("name", State.Name),
@@ -359,6 +365,11 @@ public sealed class StateInfo : IEquatable<StateInfo>
         if (State.IsImpassable)
         {
             child.Add(ChildHelper.Leaf("impassable", true));
+        }
+
+        if (!Resources.IsEmpty)
+        {
+            child.Add(Child.Create(Resources.ToNode()));
         }
 
         var historyChild = new List<Child>(2 + State.VictoryPoints.Length)

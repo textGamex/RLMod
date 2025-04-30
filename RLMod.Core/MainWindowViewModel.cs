@@ -71,8 +71,19 @@ public sealed partial class MainWindowViewModel(AppSettingService settingService
         var generator = new MapGenerator(states, countryCount);
         var countries = generator.GenerateRandomCountries().ToArray();
 
-        Log.Info("State Sum:{Sum}", countries.Sum(country => country.States.Count));
-        // GenerateMod(countries);
+        // Log.Info("State Sum:{Sum}", countries.Sum(country => country.States.Count));
+        double[] values = countries.Select(c => c.GetValue()).ToArray();
+        double sum = values.AsValueEnumerable().Sum();
+        double average = sum / countries.Length;
+        double max = values.Max();
+        double min = values.Min();
+        Log.Info("国家总价值: {Sum}, 平均价值: {Average}", sum, average);
+        Log.Info("最大值: {Max}, 最小值: {Min}", max, min);
+        Log.Info("高于平均值的国家数量: {Count}", values.AsValueEnumerable().Count(v => v > average));
+        Log.Info("低于平均值的国家数量: {Count}", values.AsValueEnumerable().Count(v => v < average));
+        Log.Info("最大国家States数量: {C}", countries.MaxBy(c => c.States.Count)!.States.Count);
+        Log.Info("最小国家States数量: {C}", countries.MinBy(c => c.States.Count)!.States.Count);
+        GenerateMod(countries);
     }
 
     private void GenerateMod(IEnumerable<CountryInfo> countries)

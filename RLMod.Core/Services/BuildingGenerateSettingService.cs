@@ -1,4 +1,5 @@
-﻿using System.Text.Json;
+﻿using System.Diagnostics;
+using System.Text.Json;
 using RLMod.Core.Models.Settings;
 
 namespace RLMod.Core.Services;
@@ -6,7 +7,7 @@ namespace RLMod.Core.Services;
 //TODO: 先从游戏建筑中动态生成一个配置信息, 待玩家调整后再使用
 public sealed class BuildingGenerateSettingService
 {
-    public IEnumerable<BuildingGenerateSetting> BuildingGenerateSettings => _settings;
+    public IEnumerable<BuildingGenerateSetting> Settings => _settings;
     private readonly BuildingGenerateSetting[] _settings;
 
     public BuildingGenerateSettingService()
@@ -19,5 +20,8 @@ public sealed class BuildingGenerateSettingService
         }
 
         _settings = JsonSerializer.Deserialize<BuildingGenerateSetting[]>(File.ReadAllText(path)) ?? [];
+
+        // 确保比例之和为 1
+        Debug.Assert(Math.Abs(_settings.Sum(setting => setting.Proportion) - 1.0) < 0.0001);
     }
 }

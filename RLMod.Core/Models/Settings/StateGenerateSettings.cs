@@ -19,7 +19,7 @@ public sealed partial class StateGenerateSettings
         get => _maxResourceNumber;
         set => SetProperty(ref _maxResourceNumber, value);
     }
-    private int _maxResourceNumber = 600;
+    private int _maxResourceNumber = 350;
 
     [MemoryPackOrder(2)]
     public double MaxFactoryNumberWeight
@@ -59,7 +59,15 @@ public sealed partial class StateGenerateSettings
         get => _victoryPointWeight;
         set => SetProperty(ref _victoryPointWeight, value);
     }
-    private double _victoryPointWeight = 0.2;
+    private double _victoryPointWeight = 0.12;
+
+    [MemoryPackOrder(7)]
+    public double ManpowerWeight
+    {
+        get => _manpowerWeight;
+        set => SetProperty(ref _manpowerWeight, value);
+    }
+    private double _manpowerWeight = 0.08;
 
     [MemoryPackIgnore]
     public bool IsChanged { get; set; }

@@ -32,4 +32,17 @@ var buildings = new BuildingGenerateSetting[]
     }
 };
 
-Console.WriteLine(JsonSerializer.Serialize(buildings, new JsonSerializerOptions { WriteIndented = true }));
+var resources = new ResourceGenerateSetting[]
+{
+    new() { Name = "steel", Proportion = 0.45 },
+    new() { Name = "oil", Proportion = 0.05 },
+    new() { Name = "aluminium", Proportion = 0.10 },
+    new() { Name = "rubber", Proportion = 0.15 },
+    new() { Name = "tungsten", Proportion = 0.12 },
+    new() { Name = "chromium", Proportion = 0.13 }
+};
+var options = new JsonSerializerOptions { WriteIndented = true };
+
+Console.WriteLine(JsonSerializer.Serialize(buildings, options));
+Console.WriteLine(new string('-', 30));
+Console.WriteLine(JsonSerializer.Serialize(resources, options));
