@@ -1,11 +1,9 @@
-﻿using MemoryPack;
+﻿using System.Text.Json.Serialization;
 
 namespace RLMod.Core.Models.Settings;
 
-[MemoryPackable]
-public sealed partial class StateGenerateSettings
+public sealed class StateGenerateSettings
 {
-    [MemoryPackOrder(0)]
     public int MaxFactoryNumber
     {
         get => _maxFactoryNumber;
@@ -13,7 +11,6 @@ public sealed partial class StateGenerateSettings
     }
     private int _maxFactoryNumber = 12;
 
-    [MemoryPackOrder(1)]
     public int MaxResourceNumber
     {
         get => _maxResourceNumber;
@@ -21,7 +18,6 @@ public sealed partial class StateGenerateSettings
     }
     private int _maxResourceNumber = 350;
 
-    [MemoryPackOrder(2)]
     public double MaxFactoryNumberWeight
     {
         get => _maxFactoryNumberWeight;
@@ -29,7 +25,6 @@ public sealed partial class StateGenerateSettings
     }
     private double _maxFactoryNumberWeight = 0.15;
 
-    [MemoryPackOrder(3)]
     public double ResourcesWeight
     {
         get => _resourcesWeight;
@@ -37,7 +32,6 @@ public sealed partial class StateGenerateSettings
     }
     private double _resourcesWeight = 0.25;
 
-    [MemoryPackOrder(4)]
     public double FactoryNumberWeight
     {
         get => _factoryNumberWeight;
@@ -45,7 +39,6 @@ public sealed partial class StateGenerateSettings
     }
     private double _factoryNumberWeight = 0.4;
 
-    [MemoryPackOrder(5)]
     public int MaxVictoryPoint
     {
         get => _maxVictoryPoint;
@@ -53,7 +46,6 @@ public sealed partial class StateGenerateSettings
     }
     private int _maxVictoryPoint = 50;
 
-    [MemoryPackOrder(6)]
     public double VictoryPointWeight
     {
         get => _victoryPointWeight;
@@ -61,7 +53,6 @@ public sealed partial class StateGenerateSettings
     }
     private double _victoryPointWeight = 0.12;
 
-    [MemoryPackOrder(7)]
     public double ManpowerWeight
     {
         get => _manpowerWeight;
@@ -69,10 +60,10 @@ public sealed partial class StateGenerateSettings
     }
     private double _manpowerWeight = 0.08;
 
-    [MemoryPackIgnore]
+    [JsonIgnore]
     public bool IsChanged { get; set; }
 
-    [MemoryPackConstructor]
+    [JsonConstructor]
     private StateGenerateSettings(
         int maxFactoryNumber,
         int maxResourceNumber,

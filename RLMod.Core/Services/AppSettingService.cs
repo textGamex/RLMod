@@ -1,14 +1,12 @@
-﻿using MemoryPack;
+﻿using System.Text.Json;
+using System.Text.Json.Serialization;
 using NLog;
 using RLMod.Core.Models.Settings;
 
 namespace RLMod.Core.Services;
 
-[MemoryPackable]
-public sealed partial class AppSettingService
+public sealed class AppSettingService
 {
-    // TODO: 换成Json
-    [MemoryPackOrder(0)]
     public string GameRootFolderPath
     {
         get => _gameRootFolderPath;
@@ -16,7 +14,6 @@ public sealed partial class AppSettingService
     }
     private string _gameRootFolderPath = string.Empty;
 
-    [MemoryPackOrder(1)]
     public string OutputFolderPath
     {
         get => _outputFolderPath;
@@ -29,10 +26,9 @@ public sealed partial class AppSettingService
         "mod"
     );
 
-    [MemoryPackOrder(2)]
     public StateGenerateSettings StateGenerate { get; }
 
-    [MemoryPackOrder(3)]
+    [JsonIgnore]
     public int GenerateCountryCount
     {
         get => _generateCountryCount;
@@ -43,14 +39,14 @@ public sealed partial class AppSettingService
     /// <summary>
     /// 全局随机数生成器的种子, 相同的种子应生成相同的 Mod
     /// </summary>
-    [MemoryPackIgnore]
+    [JsonIgnore]
     public int? RandomSeed { get; set; }
 
-    [MemoryPackIgnore]
+    [JsonIgnore]
     public bool IsChanged { get; set; }
     private bool AnyChanges => IsChanged || StateGenerate.IsChanged;
 
-    private static readonly string ConfigFilePath = Path.Combine(App.AppConfigPath, "AppSettings.bin");
+    private static readonly string ConfigFilePath = Path.Combine(App.AppConfigPath, "AppSettings.json");
 
     private static readonly Logger Log = LogManager.GetCurrentClassLogger();
 
@@ -69,12 +65,14 @@ public sealed partial class AppSettingService
         IsChanged = true;
     }
 
-    [MemoryPackConstructor]
+    [JsonConstructor]
     public AppSettingService(string gameRootFolderPath, StateGenerateSettings stateGenerate)
     {
         _gameRootFolderPath = gameRootFolderPath;
         StateGenerate = stateGenerate;
     }
+
+    private static readonly JsonSerializerOptions Options = new() { WriteIndented = true };
 
     /// <summary>
     /// 如果有更改，保存更改
@@ -89,8 +87,7 @@ public sealed partial class AppSettingService
 
         Log.Info("配置文件保存中...");
 
-        // TODO: System.IO.Pipelines
-        File.WriteAllBytes(ConfigFilePath, MemoryPackSerializer.Serialize(this));
+        File.WriteAllBytes(ConfigFilePath, JsonSerializer.SerializeToUtf8Bytes(this, Options));
         IsChanged = false;
         StateGenerate.IsChanged = false;
 
@@ -105,7 +102,7 @@ public sealed partial class AppSettingService
         }
 
         var result =
-            MemoryPackSerializer.Deserialize<AppSettingService>(File.ReadAllBytes(ConfigFilePath))
+            JsonSerializer.Deserialize<AppSettingService>(File.ReadAllBytes(ConfigFilePath))
             ?? new AppSettingService();
 
         return result;

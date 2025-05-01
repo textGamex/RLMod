@@ -83,7 +83,7 @@ public sealed partial class MainWindowViewModel(AppSettingService settingService
         Log.Info("低于平均值的国家数量: {Count}", values.AsValueEnumerable().Count(v => v < average));
         Log.Info("最大国家States数量: {C}", countries.MaxBy(c => c.States.Count)!.States.Count);
         Log.Info("最小国家States数量: {C}", countries.MinBy(c => c.States.Count)!.States.Count);
-        GenerateMod(countries);
+        // GenerateMod(countries);
     }
 
     private void GenerateMod(IEnumerable<CountryInfo> countries)
