@@ -144,27 +144,17 @@ public sealed class MapGenerator
         CalculateAndCacheStatesDistance();
         Log.Info("计算省份（State）之间的距离分布完成");
 
-        var countryTags = _countryTagService.GetCountryTags().ToList();
-
-        var countries = GetRandomInitialState()
-            .AsValueEnumerable()
-            .Select(initialState =>
-            {
-                int index = _random.Next(countryTags.Count);
-                string countryTag = countryTags[index];
-                countryTags.RemoveFastAt(index);
-                return new CountryInfo(initialState, countryTag);
-            })
-            .ToArray();
+        var states = GetRandomInitialState();
+        var countries = GetCountryInfos(states);
 
         Log.Info("开始扩展...");
-        AssignStates(countries);
+        AssignStatesForCountries(countries);
         Log.Info("扩展完毕");
 
         return countries;
     }
 
-    private void AssignStates(CountryInfo[] countries)
+    private void AssignStatesForCountries(CountryInfo[] countries)
     {
         bool isChange;
         do
@@ -206,6 +196,26 @@ public sealed class MapGenerator
         country.AddState(state);
         _occupiedStates.Add(state);
         return true;
+    }
+
+    /// <summary>
+    /// 生成初始 <see cref="CountryInfo"/>, 并随机分配国家标签。
+    /// </summary>
+    /// <param name="states">随机初始 State 集合</param>
+    /// <returns></returns>
+    private CountryInfo[] GetCountryInfos(List<StateInfo> states)
+    {
+        var countryTags = _countryTagService.GetCountryTags().ToList();
+        var countries = new CountryInfo[states.Count];
+        for (int i = 0; i < states.Count; i++)
+        {
+            int index = _random.Next(countryTags.Count);
+            string countryTag = countryTags[index];
+            countryTags.RemoveFastAt(index);
+            countries[i] = new CountryInfo(states[i], countryTag);
+        }
+
+        return countries;
     }
 
     /// <summary>
