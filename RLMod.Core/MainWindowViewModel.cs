@@ -24,7 +24,7 @@ public sealed partial class MainWindowViewModel(AppSettingService settingService
     private string _gameRootPath = settingService.GameRootFolderPath;
 
     [ObservableProperty]
-    private string _generateCountryCount = settingService.GenerateCountryCount.ToString();
+    private int _generateCountryCount = settingService.GenerateCountryCount;
 
     [ObservableProperty]
     private int _randomSeed = settingService.RandomSeed ?? 0;
@@ -49,7 +49,7 @@ public sealed partial class MainWindowViewModel(AppSettingService settingService
     [RelayCommand]
     private void GenerateRandomizerMap()
     {
-        if (!int.TryParse(GenerateCountryCount, out int countryCount) || countryCount <= 0)
+        if (GenerateCountryCount <= 0)
         {
             MessageBox.Show("国家数量不能小于等于0", "错误");
             return;
@@ -68,7 +68,7 @@ public sealed partial class MainWindowViewModel(AppSettingService settingService
         string stateFolder = Path.Combine(GameRootPath, "history", "states");
         var states = GetStates(stateFolder);
 
-        var generator = new MapGenerator(states, countryCount);
+        var generator = new MapGenerator(states, GenerateCountryCount);
         var countries = generator.GenerateRandomCountries().ToArray();
 
         // Log.Info("State Sum:{Sum}", countries.Sum(country => country.States.Count));
@@ -232,11 +232,11 @@ public sealed partial class MainWindowViewModel(AppSettingService settingService
         return victoryPointList.ToArray();
     }
 
-    partial void OnGenerateCountryCountChanged(string value)
+    partial void OnGenerateCountryCountChanged(int value)
     {
-        if (int.TryParse(value, out int result) && result > 0)
+        if (value > 0)
         {
-            settingService.GenerateCountryCount = result;
+            settingService.GenerateCountryCount = value;
         }
     }
 }
