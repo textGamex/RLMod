@@ -1,4 +1,4 @@
-﻿using System.Text.Json;
+using System.Text.Json;
 using System.Text.Json.Serialization;
 using NLog;
 using RLMod.Core.Models.Settings;
@@ -28,7 +28,6 @@ public sealed class AppSettingService
 
     public StateGenerateSettings StateGenerate { get; }
 
-    [JsonIgnore]
     public int GenerateCountryCount
     {
         get => _generateCountryCount;
