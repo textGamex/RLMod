@@ -17,6 +17,7 @@
 
     <Window.Resources>
         <converters:BoolInverter x:Key="BoolInverter" />
+        <converters:BoolToVisibilityConverter x:Key="BoolToVisibilityConverter" />
     </Window.Resources>
 
     <Grid>
@@ -85,7 +86,7 @@
 
         <ui:ToggleSwitch
             Grid.Row="3"
-            IsOn="{Binding IsGenerateMode, Mode=TwoWay}"
+            IsOn="{Binding IsGenerateFileMode, Mode=TwoWay}"
             OffContent="仅测试"
             OnContent="正常生成文件" />
 
@@ -93,6 +94,8 @@
             Grid.Row="4"
             HorizontalAlignment="Center"
             Command="{Binding GenerateRandomizerMapCommand}"
-            Content="生成" />
+            Content="生成"
+            Visibility="{Binding IsIdle, Mode=OneWay, Converter={StaticResource BoolToVisibilityConverter}}" />
+        <ui:ProgressRing Grid.Row="4" IsActive="{Binding IsGenerating, Mode=OneWay}" />
     </Grid>
 </Window>

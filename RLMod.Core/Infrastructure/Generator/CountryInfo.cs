@@ -37,7 +37,7 @@ public sealed class CountryInfo
     }
 
     /// <summary>
-    /// 获取国家的价值, 用来衡量国家强度, 越高代表国家越强
+    /// 获取国家的价值, 用来衡量国家强度, 越大代表国家越强
     /// </summary>
     /// <returns>国家的价值</returns>
     public double GetValue()

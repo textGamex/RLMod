@@ -33,7 +33,13 @@ public sealed partial class MainWindowViewModel(AppSettingService settingService
     private bool _isInputRandomSeed;
 
     [ObservableProperty]
-    private bool _isGenerateMode;
+    private bool _isGenerateFileMode;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsIdle))]
+    private bool _isGenerating;
+
+    public bool IsIdle => !IsGenerating;
 
     [RelayCommand]
     private void SelectGameRootPath()
@@ -50,12 +56,12 @@ public sealed partial class MainWindowViewModel(AppSettingService settingService
     }
 
     [RelayCommand]
-    private Task GenerateRandomizerMap()
+    private async Task GenerateRandomizerMap()
     {
         if (GenerateCountryCount <= 0)
         {
             MessageBox.Show("国家数量不能小于等于0", "错误");
-            return Task.CompletedTask;
+            return;
         }
 
         if (IsInputRandomSeed)
@@ -68,7 +74,9 @@ public sealed partial class MainWindowViewModel(AppSettingService settingService
             RandomSeed = settingService.RandomSeed.Value;
         }
 
-        return Task.Run(() =>
+        IsGenerating = true;
+
+        await Task.Run(() =>
         {
             string stateFolder = Path.Combine(GameRootPath, "history", "states");
             var states = GetStates(stateFolder);
@@ -90,11 +98,13 @@ public sealed partial class MainWindowViewModel(AppSettingService settingService
             Log.Info("最小国家States数量: {C}", countries.MinBy(c => c.States.Count)!.States.Count);
             Log.Info("前六名国家发展度: {Array}", values.OrderDescending().Take(6));
 
-            if (IsGenerateMode)
+            if (IsGenerateFileMode)
             {
                 GenerateMod(countries);
             }
         });
+
+        IsGenerating = false;
     }
 
     private void GenerateMod(IEnumerable<CountryInfo> countries)
