@@ -24,6 +24,7 @@
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
         </Grid.RowDefinitions>
 
@@ -82,8 +83,14 @@
                 OnContent="手动指定" />
         </StackPanel>
 
-        <Button
+        <ui:ToggleSwitch
             Grid.Row="3"
+            IsOn="{Binding IsGenerateMode, Mode=TwoWay}"
+            OffContent="仅测试"
+            OnContent="正常生成文件" />
+
+        <Button
+            Grid.Row="4"
             HorizontalAlignment="Center"
             Command="{Binding GenerateRandomizerMapCommand}"
             Content="生成" />

@@ -1,4 +1,4 @@
-﻿using System.Diagnostics;
+using System.Diagnostics;
 using Microsoft.Extensions.DependencyInjection;
 using NLog;
 using RLMod.Core.Services;
@@ -6,6 +6,8 @@ using ZLinq;
 
 namespace RLMod.Core.Infrastructure.Generator;
 
+// TODO: 当State分配完成后，可以再计算国家价值，并根据价值分配资源和建筑
+// UpdateCountryType
 public sealed class CountryInfo
 {
     public string Tag { get; }
@@ -35,7 +37,7 @@ public sealed class CountryInfo
     }
 
     /// <summary>
-    /// 计算获取国家的价值。
+    /// 获取国家的价值, 用来衡量国家强度, 越高代表国家越强
     /// </summary>
     /// <returns>国家的价值</returns>
     public double GetValue()

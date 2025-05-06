@@ -1,4 +1,4 @@
-﻿using System.Windows;
+using System.Windows;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using MathNet.Numerics.Random;
@@ -32,6 +32,9 @@ public sealed partial class MainWindowViewModel(AppSettingService settingService
     [ObservableProperty]
     private bool _isInputRandomSeed;
 
+    [ObservableProperty]
+    private bool _isGenerateMode;
+
     [RelayCommand]
     private void SelectGameRootPath()
     {
@@ -47,12 +50,12 @@ public sealed partial class MainWindowViewModel(AppSettingService settingService
     }
 
     [RelayCommand]
-    private void GenerateRandomizerMap()
+    private Task GenerateRandomizerMap()
     {
         if (GenerateCountryCount <= 0)
         {
             MessageBox.Show("国家数量不能小于等于0", "错误");
-            return;
+            return Task.CompletedTask;
         }
 
         if (IsInputRandomSeed)
@@ -65,25 +68,33 @@ public sealed partial class MainWindowViewModel(AppSettingService settingService
             RandomSeed = settingService.RandomSeed.Value;
         }
 
-        string stateFolder = Path.Combine(GameRootPath, "history", "states");
-        var states = GetStates(stateFolder);
+        return Task.Run(() =>
+        {
+            string stateFolder = Path.Combine(GameRootPath, "history", "states");
+            var states = GetStates(stateFolder);
 
-        var generator = new MapGenerator(states, GenerateCountryCount);
-        var countries = generator.GenerateRandomCountries().ToArray();
+            var generator = new MapGenerator(states, GenerateCountryCount);
+            var countries = generator.GenerateRandomCountries().ToArray();
 
-        // Log.Info("State Sum:{Sum}", countries.Sum(country => country.States.Count));
-        double[] values = countries.Select(c => c.GetValue()).ToArray();
-        double sum = values.AsValueEnumerable().Sum();
-        double average = sum / countries.Length;
-        double max = values.Max();
-        double min = values.Min();
-        Log.Info("国家总价值: {Sum}, 平均价值: {Average}", sum, average);
-        Log.Info("最大值: {Max}, 最小值: {Min}", max, min);
-        Log.Info("高于平均值的国家数量: {Count}", values.AsValueEnumerable().Count(v => v > average));
-        Log.Info("低于平均值的国家数量: {Count}", values.AsValueEnumerable().Count(v => v < average));
-        Log.Info("最大国家States数量: {C}", countries.MaxBy(c => c.States.Count)!.States.Count);
-        Log.Info("最小国家States数量: {C}", countries.MinBy(c => c.States.Count)!.States.Count);
-        // GenerateMod(countries);
+            // Log.Info("State Sum:{Sum}", countries.Sum(country => country.States.Count));
+            double[] values = countries.Select(c => c.GetValue()).ToArray();
+            double sum = values.AsValueEnumerable().Sum();
+            double average = sum / countries.Length;
+            double max = values.Max();
+            double min = values.Min();
+            Log.Info("国家总价值: {Sum}, 平均价值: {Average}", sum, average);
+            Log.Info("最大值: {Max}, 最小值: {Min}", max, min);
+            Log.Info("大于等于平均值的国家数量: {Count}", values.AsValueEnumerable().Count(v => v >= average));
+            Log.Info("低于平均值的国家数量: {Count}", values.AsValueEnumerable().Count(v => v < average));
+            Log.Info("最大国家States数量: {C}", countries.MaxBy(c => c.States.Count)!.States.Count);
+            Log.Info("最小国家States数量: {C}", countries.MinBy(c => c.States.Count)!.States.Count);
+            Log.Info("前六名国家发展度: {Array}", values.OrderDescending().Take(6));
+
+            if (IsGenerateMode)
+            {
+                GenerateMod(countries);
+            }
+        });
     }
 
     private void GenerateMod(IEnumerable<CountryInfo> countries)
