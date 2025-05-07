@@ -156,6 +156,7 @@ public sealed class MapGenerator
 
     private void AssignStatesForCountries(CountryInfo[] countries)
     {
+        SetGrowRates(_stateInfoManager.PassableLandStateCount / _countriesCount * 2.5);
         bool isChange;
         do
         {
@@ -165,14 +166,39 @@ public sealed class MapGenerator
             {
                 // 获取可通行相邻省份， 包括海洋省份
                 var passableBorder = country.GetPassableBorder();
-                if (passableBorder.Count <= 0)
-                {
-                    continue;
-                }
 
-                isChange = TryExpandCountry(country, passableBorder, countries) || isChange;
+                if (country.AbleToGrow)
+                {
+                    isChange = TryExpandCountry(country, passableBorder, countries) || isChange;
+                }
             }
         } while (isChange);
+        do
+        {
+            isChange = false;
+
+            foreach (var country in countries)
+            {
+                isChange = TryExpandCountry2(country, countries) || isChange;
+            }
+        } while (isChange);
+    }
+
+    private bool TryExpandCountry2(CountryInfo country, CountryInfo[] countries)
+    {
+        var states = _stateInfoManager.States.Where(s => !_occupiedStates.Contains(s) && !s.IsImpassable).ToArray();
+        if (states.Length <= 0)
+        {
+            return false;
+        }
+        var state = states[_random.Next(states.Length)];
+        if (state is null)
+        {
+            return false;
+        }
+        country.AddState(state);
+        _occupiedStates.Add(state);
+        return true;
     }
 
     /// <summary>
@@ -190,6 +216,22 @@ public sealed class MapGenerator
     {
         var state = GetBestState(candidates, countries);
         if (state is null)
+        {
+            if (!country.TryGrow(_growRates, _random))
+            {
+                return false;
+            }
+            var states = _stateInfoManager.States.Where(s => !_occupiedStates.Contains(s) && !s.IsImpassable).ToArray();
+            if (states.Length <= 0)
+            {
+                return false;
+            }
+            state = states[_random.Next(states.Length)];
+            country.AddState(state);
+            _occupiedStates.Add(state);
+            return true;
+        }
+        if (!state.IsOcean && !country.TryGrow(_growRates, _random))
         {
             return false;
         }
@@ -242,7 +284,7 @@ public sealed class MapGenerator
                     State = candidate,
                     TotalDistance = selectedStates.Sum(selected =>
                         GetStateShortestPathLength(candidate, selected.Id)
-                    )
+                    ),
                 })
                 .OrderBy(d => d.TotalDistance)
                 .ToArrayPool();
@@ -290,6 +332,10 @@ public sealed class MapGenerator
     /// <returns>最优省份（State）</returns>
     private StateInfo? GetBestState(IReadOnlyCollection<StateInfo> candidates, CountryInfo[] countries)
     {
+        if (candidates is null)
+        {
+            return null;
+        }
         using var validCandidates = candidates
             .AsValueEnumerable()
             .Where(s => !_occupiedStates.Contains(s))
@@ -579,5 +625,49 @@ public sealed class MapGenerator
         double[] values = new double[count];
         normal.Samples(values);
         return values;
+    }
+
+    private double[] _growRates = [];
+
+    private void SetGrowRates(double size)
+    {
+        const double sigma = 1;
+        double mu = size / 2;
+        List<double> probs = [];
+
+        for (int k = 1; k <= size; k++)
+        {
+            double cdfLow,
+                cdfHigh;
+
+            if (k == 1)
+            {
+                // 区间 (-∞, 1.5)
+                cdfLow = 0.0; // CDF(-∞) = 0
+                cdfHigh = Normal.CDF(mu, sigma, 1.5);
+            }
+            else if (k == size)
+            {
+                // 区间 [X-0.5, +∞)
+                cdfLow = Normal.CDF(mu, sigma, size - 0.5);
+                cdfHigh = 1.0; // CDF(+∞) = 1
+            }
+            else
+            {
+                // 区间 [k-0.5, k+0.5)
+                cdfLow = Normal.CDF(mu, sigma, k - 0.5);
+                cdfHigh = Normal.CDF(mu, sigma, k + 0.5);
+            }
+
+            probs.Add(cdfHigh - cdfLow);
+        }
+
+        double total = probs.Sum();
+        _growRates = new double[probs.Count];
+        _growRates[0] = probs[0] / total * 100;
+        for (int i = 1; i < probs.Count; i++)
+        {
+            _growRates[i] = probs[i] / total * 100 + _growRates[i - 1];
+        }
     }
 }

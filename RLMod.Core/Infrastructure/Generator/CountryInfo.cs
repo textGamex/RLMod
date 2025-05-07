@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using MathNet.Numerics.Random;
 using Microsoft.Extensions.DependencyInjection;
 using NLog;
 using RLMod.Core.Services;
@@ -31,6 +32,8 @@ public sealed class CountryInfo
 
     public CountryInfo(StateInfo initialState, string tag)
     {
+        _age = 0;
+        AbleToGrow = true;
         Tag = tag;
         InitialId = initialState.Id;
         AddState(initialState);
@@ -125,5 +128,24 @@ public sealed class CountryInfo
             string path = Path.Combine(statesFolder, $"{state.Id}.txt");
             File.WriteAllText(path, state.ToScript(), App.Utf8WithoutBom);
         }
+    }
+
+    private int _age;
+    public bool AbleToGrow;
+
+    public bool TryGrow(double[] AgeRates, MersenneTwister random)
+    {
+        if (!AbleToGrow)
+        {
+            return false;
+        }
+        if (random.Next(100) > AgeRates[_age])
+        {
+            _age++;
+            return true;
+        }
+
+        AbleToGrow = false;
+        return false;
     }
 }
