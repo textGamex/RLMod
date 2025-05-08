@@ -133,13 +133,13 @@ public sealed class CountryInfo
     private int _age;
     public bool AbleToGrow;
 
-    public bool TryGrow(double[] AgeRates, MersenneTwister random)
+    public bool TryGrow(double[] ageRates, MersenneTwister random)
     {
         if (!AbleToGrow)
         {
             return false;
         }
-        if (random.Next(100) > AgeRates[_age])
+        if (random.Next(100) > ageRates[_age])
         {
             _age++;
             return true;

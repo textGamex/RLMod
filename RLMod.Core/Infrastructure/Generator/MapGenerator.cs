@@ -156,7 +156,7 @@ public sealed class MapGenerator
 
     private void AssignStatesForCountries(CountryInfo[] countries)
     {
-        SetGrowRates(_stateInfoManager.PassableLandStateCount / _countriesCount * 2.5);
+        SetGrowRates((double)_stateInfoManager.PassableLandStateCount / _countriesCount * 2.5);
         bool isChange;
         do
         {
@@ -173,29 +173,27 @@ public sealed class MapGenerator
                 }
             }
         } while (isChange);
-        do
-        {
-            isChange = false;
-
-            foreach (var country in countries)
-            {
-                isChange = TryExpandCountry2(country, countries) || isChange;
-            }
-        } while (isChange);
+        // do
+        // {
+        //     isChange = false;
+        //
+        //     foreach (var country in countries)
+        //     {
+        //         isChange = TryExpandCountry2(country, countries) || isChange;
+        //     }
+        // } while (isChange);
     }
 
     private bool TryExpandCountry2(CountryInfo country, CountryInfo[] countries)
     {
-        var states = _stateInfoManager.States.Where(s => !_occupiedStates.Contains(s) && !s.IsImpassable).ToArray();
+        var states = _stateInfoManager
+            .States.Where(s => !_occupiedStates.Contains(s) && !s.IsImpassable)
+            .ToArray();
         if (states.Length <= 0)
         {
             return false;
         }
         var state = states[_random.Next(states.Length)];
-        if (state is null)
-        {
-            return false;
-        }
         country.AddState(state);
         _occupiedStates.Add(state);
         return true;
@@ -221,7 +219,9 @@ public sealed class MapGenerator
             {
                 return false;
             }
-            var states = _stateInfoManager.States.Where(s => !_occupiedStates.Contains(s) && !s.IsImpassable).ToArray();
+            var states = _stateInfoManager
+                .States.Where(s => !_occupiedStates.Contains(s) && !s.IsImpassable)
+                .ToArray();
             if (states.Length <= 0)
             {
                 return false;
@@ -332,10 +332,6 @@ public sealed class MapGenerator
     /// <returns>最优省份（State）</returns>
     private StateInfo? GetBestState(IReadOnlyCollection<StateInfo> candidates, CountryInfo[] countries)
     {
-        if (candidates is null)
-        {
-            return null;
-        }
         using var validCandidates = candidates
             .AsValueEnumerable()
             .Where(s => !_occupiedStates.Contains(s))
@@ -646,7 +642,7 @@ public sealed class MapGenerator
                 cdfLow = 0.0; // CDF(-∞) = 0
                 cdfHigh = Normal.CDF(mu, sigma, 1.5);
             }
-            else if (k == size)
+            else if (Math.Abs(k - size) < 0.000001)
             {
                 // 区间 [X-0.5, +∞)
                 cdfLow = Normal.CDF(mu, sigma, size - 0.5);

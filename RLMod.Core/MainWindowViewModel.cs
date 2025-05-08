@@ -77,32 +77,43 @@ public sealed partial class MainWindowViewModel(AppSettingService settingService
         IsGenerating = true;
 
         await Task.Run(() =>
-        {
-            string stateFolder = Path.Combine(GameRootPath, "history", "states");
-            var states = GetStates(stateFolder);
-
-            var generator = new MapGenerator(states, GenerateCountryCount);
-            var countries = generator.GenerateRandomCountries().ToArray();
-
-            // Log.Info("State Sum:{Sum}", countries.Sum(country => country.States.Count));
-            double[] values = countries.Select(c => c.GetValue()).ToArray();
-            double sum = values.AsValueEnumerable().Sum();
-            double average = sum / countries.Length;
-            double max = values.Max();
-            double min = values.Min();
-            Log.Info("国家总价值: {Sum}, 平均价值: {Average}", sum, average);
-            Log.Info("最大值: {Max}, 最小值: {Min}", max, min);
-            Log.Info("大于等于平均值的国家数量: {Count}", values.AsValueEnumerable().Count(v => v >= average));
-            Log.Info("低于平均值的国家数量: {Count}", values.AsValueEnumerable().Count(v => v < average));
-            Log.Info("最大国家States数量: {C}", countries.MaxBy(c => c.States.Count)!.States.Count);
-            Log.Info("最小国家States数量: {C}", countries.MinBy(c => c.States.Count)!.States.Count);
-            Log.Info("前六名国家发展度: {Array}", values.OrderDescending().Take(6));
-
-            if (IsGenerateFileMode)
             {
-                GenerateMod(countries);
-            }
-        });
+                string stateFolder = Path.Combine(GameRootPath, "history", "states");
+                var states = GetStates(stateFolder);
+
+                var generator = new MapGenerator(states, GenerateCountryCount);
+                var countries = generator.GenerateRandomCountries().ToArray();
+
+                double[] values = countries.Select(c => c.GetValue()).ToArray();
+                double sum = values.AsValueEnumerable().Sum();
+                double average = sum / countries.Length;
+                double max = values.Max();
+                double min = values.Min();
+                int statesSum = countries.Sum(country => country.States.Count);
+                if (states.Count != statesSum)
+                {
+                    Log.Warn("State 数量不匹配, 读取的数量: {Count}, 生成的数量: {Sum}", states.Count, statesSum);
+                }
+                Log.Info("国家总价值: {Sum}, 平均价值: {Average}", sum, average);
+                Log.Info("最大值: {Max}, 最小值: {Min}", max, min);
+                Log.Info("大于等于平均值的国家数量: {Count}", values.AsValueEnumerable().Count(v => v >= average));
+                Log.Info("低于平均值的国家数量: {Count}", values.AsValueEnumerable().Count(v => v < average));
+                Log.Info("最大国家States数量: {C}", countries.MaxBy(c => c.States.Count)!.States.Count);
+                Log.Info("最小国家States数量: {C}", countries.MinBy(c => c.States.Count)!.States.Count);
+                Log.Info("前六名国家发展度: {Array}", values.OrderDescending().Take(6));
+
+                if (IsGenerateFileMode)
+                {
+                    GenerateMod(countries);
+                }
+            })
+            .ContinueWith(task =>
+            {
+                if (task.IsFaulted)
+                {
+                    Log.Error(task.Exception);
+                }
+            });
 
         IsGenerating = false;
     }
