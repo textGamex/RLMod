@@ -598,23 +598,6 @@ public sealed class MapGenerator
         }
     }
 
-    //
-    // private void RebalanceProperties(StateMap state)
-    // {
-    //     switch (state.StateType)
-    //     {
-    //         case StateType.Industrial:
-    //             state.Resources = (int)(state.Factories * 0.4);
-    //             break;
-    //         case StateType.Resource:
-    //             state.Factories = (int)(state.Resources * 0.3);
-    //             break;
-    //         default:
-    //             state.Resources = Math.Min(state.Factories * 24, StatePropertyLimit.MaxResources);
-    //             break;
-    //     }
-    // }
-
     private double[] GenerateNormalDistribution(int count)
     {
         var normal = Normal.WithMeanStdDev(_valueMean, _valueStdDev, _random);
