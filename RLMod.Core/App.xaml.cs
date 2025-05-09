@@ -1,3 +1,4 @@
+using System.Text;
 using System.Windows;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -13,6 +14,9 @@ public partial class App : Application
     public IServiceProvider Services => _host.Services;
     public static new App Current => (App)Application.Current;
     public static string AppConfigPath { get; } = Path.Combine(Environment.CurrentDirectory, "Configs");
+    public static string Assets { get; } = Path.Combine(Environment.CurrentDirectory, "Assets");
+    public const string ModName = "RLMod";
+    public static Encoding Utf8WithoutBom { get; } = new UTF8Encoding(false);
 
     private readonly IHost _host;
     private static readonly Logger Log = LogManager.GetCurrentClassLogger();
@@ -47,9 +51,14 @@ public partial class App : Application
         builder.Services.AddSingleton<MainWindow>();
         builder.Services.AddSingleton<MainWindowViewModel>();
 
-        builder.Services.AddSingleton(AppSettingService.Load());
         builder.Services.AddSingleton<CountryTagService>();
         builder.Services.AddSingleton<ProvinceService>();
+        builder.Services.AddSingleton<StateCategoryService>();
+        builder.Services.AddSingleton<BuildingService>();
+
+        builder.Services.AddSingleton(AppSettingService.Load());
+        builder.Services.AddSingleton<BuildingGenerateSettingService>();
+        builder.Services.AddSingleton<ResourceGenerateSettingService>();
 
         // 添加 NLog 日志
         builder.Logging.ClearProviders();
@@ -82,5 +91,6 @@ public partial class App : Application
     {
         base.OnExit(e);
         _host.StopAsync();
+        _host.Dispose();
     }
 }

@@ -1,0 +1,49 @@
+[
+  {
+    "Name": "infrastructure",
+    "Type": "Necessary",
+    "MinLevel": 1,
+    "MaxLevel": null,
+    "Mean": 3,
+    "StandardDeviation": 1,
+    "Proportion": 0,
+    "NeedCoastal": false,
+    "ReplaceSetting": null
+  },
+  {
+    "Name": "arms_factory",
+    "Type": "Proportion",
+    "MinLevel": null,
+    "MaxLevel": null,
+    "Mean": 0,
+    "StandardDeviation": 0,
+    "Proportion": 0.3,
+    "NeedCoastal": false,
+    "ReplaceSetting": null
+  },
+  {
+    "Name": "industrial_complex",
+    "Type": "Proportion",
+    "MinLevel": null,
+    "MaxLevel": null,
+    "Mean": 0,
+    "StandardDeviation": 0,
+    "Proportion": 0.7,
+    "NeedCoastal": false,
+    "ReplaceSetting": null
+  },
+  {
+    "Name": "dockyard",
+    "Type": "Replace",
+    "MinLevel": null,
+    "MaxLevel": null,
+    "Mean": 0,
+    "StandardDeviation": 0,
+    "Proportion": 0,
+    "NeedCoastal": true,
+    "ReplaceSetting": {
+      "ReplaceName": "arms_factory",
+      "Proportion": 0.25
+    }
+  }
+]
