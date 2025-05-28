@@ -1,0 +1,26 @@
+[
+  {
+    "Name": "steel",
+    "Proportion": 0.45
+  },
+  {
+    "Name": "oil",
+    "Proportion": 0.05
+  },
+  {
+    "Name": "aluminium",
+    "Proportion": 0.1
+  },
+  {
+    "Name": "rubber",
+    "Proportion": 0.15
+  },
+  {
+    "Name": "tungsten",
+    "Proportion": 0.12
+  },
+  {
+    "Name": "chromium",
+    "Proportion": 0.13
+  }
+]

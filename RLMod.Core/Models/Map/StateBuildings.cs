@@ -1,5 +1,7 @@
 ﻿using ParadoxPower.CSharpExtensions;
 using ParadoxPower.Process;
+using RLMod.Core.Extensions;
+using ZLinq;
 
 namespace RLMod.Core.Models.Map;
 
@@ -16,11 +18,44 @@ public sealed class StateBuildings
 
     public void Add(string name, int level)
     {
+        if (level <= 0)
+        {
+            return;
+        }
+
         _buildings.Add(new Building(name, level));
+    }
+
+    public int GetLevel(string name)
+    {
+        return _buildings.AsValueEnumerable().FirstOrDefault(building => building.Name == name)?.Level ?? 0;
+    }
+
+    public void SetLevel(string name, int level)
+    {
+        int index = _buildings.FindIndex(building => building.Name == name);
+        if (index == -1)
+        {
+            return;
+        }
+
+        if (level <= 0)
+        {
+            _buildings.RemoveFastAt(index);
+        }
+        else
+        {
+            _buildings[index] = new Building(name, level);
+        }
     }
 
     public void AddProvinceBuilding(int provinceId, string name, int level)
     {
+        if (level <= 0)
+        {
+            return;
+        }
+
         if (_buildingsByProvince.TryGetValue(provinceId, out var provinceBuildings))
         {
             provinceBuildings.Add(new Building(name, level));

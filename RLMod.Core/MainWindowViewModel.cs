@@ -1,23 +1,45 @@
-﻿using CommunityToolkit.Mvvm.ComponentModel;
+using System.Windows;
+using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using MathNet.Numerics.Random;
 using Microsoft.Win32;
 using NLog;
 using ParadoxPower.CSharpExtensions;
+using ParadoxPower.Parser;
 using ParadoxPower.Process;
 using RLMod.Core.Extensions;
 using RLMod.Core.Helpers;
-using RLMod.Core.Infrastructure.Parser;
+using RLMod.Core.Infrastructure.Generator;
 using RLMod.Core.Models.Map;
 using RLMod.Core.Services;
 using ZLinq;
 
 namespace RLMod.Core;
 
-public sealed partial class MainWindowViewModel(AppSettingService settingService, CountryTagService tagService) : ObservableObject
+public sealed partial class MainWindowViewModel(AppSettingService settingService) : ObservableObject
 {
     private static readonly Logger Log = LogManager.GetCurrentClassLogger();
+
     [ObservableProperty]
     private string _gameRootPath = settingService.GameRootFolderPath;
+
+    [ObservableProperty]
+    private int _generateCountryCount = settingService.GenerateCountryCount;
+
+    [ObservableProperty]
+    private int _randomSeed = settingService.RandomSeed ?? 0;
+
+    [ObservableProperty]
+    private bool _isInputRandomSeed;
+
+    [ObservableProperty]
+    private bool _isGenerateFileMode;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsIdle))]
+    private bool _isGenerating;
+
+    public bool IsIdle => !IsGenerating;
 
     [RelayCommand]
     private void SelectGameRootPath()
@@ -34,12 +56,106 @@ public sealed partial class MainWindowViewModel(AppSettingService settingService
     }
 
     [RelayCommand]
-    private void GenerateRandomizerMap()
+    private async Task GenerateRandomizerMap()
     {
-        string stateFolder = Path.Combine(GameRootPath, "history", "states");
-        var states = GetStates(stateFolder);
-        var a = tagService.GetCountryTags();
-        Log.Info("国家标签: {0}", a.Length);
+        if (GenerateCountryCount <= 0)
+        {
+            MessageBox.Show("国家数量不能小于等于0", "错误");
+            return;
+        }
+
+        if (IsInputRandomSeed)
+        {
+            settingService.RandomSeed = RandomSeed;
+        }
+        else
+        {
+            settingService.RandomSeed = Random.Shared.NextFullRangeInt32();
+            RandomSeed = settingService.RandomSeed.Value;
+        }
+
+        IsGenerating = true;
+
+        await Task.Run(() =>
+            {
+                string stateFolder = Path.Combine(GameRootPath, "history", "states");
+                var states = GetStates(stateFolder);
+
+                var generator = new MapGenerator(states, GenerateCountryCount);
+                var countries = generator.GenerateRandomCountries().ToArray();
+
+                double[] values = countries.Select(c => c.GetValue()).ToArray();
+                double sum = values.AsValueEnumerable().Sum();
+                double average = sum / countries.Length;
+                double max = values.Max();
+                double min = values.Min();
+                int statesSum = countries.Sum(country => country.States.Count);
+                if (states.Count != statesSum)
+                {
+                    Log.Warn("State 数量不匹配, 读取的数量: {Count}, 生成的数量: {Sum}", states.Count, statesSum);
+                }
+                Log.Info("国家总价值: {Sum}, 平均价值: {Average}", sum, average);
+                Log.Info("最大值: {Max}, 最小值: {Min}", max, min);
+                Log.Info("大于等于平均值的国家数量: {Count}", values.AsValueEnumerable().Count(v => v >= average));
+                Log.Info("低于平均值的国家数量: {Count}", values.AsValueEnumerable().Count(v => v < average));
+                Log.Info("最大国家States数量: {C}", countries.MaxBy(c => c.States.Count)!.States.Count);
+                Log.Info("最小国家States数量: {C}", countries.MinBy(c => c.States.Count)!.States.Count);
+                Log.Info("前六名国家发展度: {Array}", values.OrderDescending().Take(6));
+
+                if (IsGenerateFileMode)
+                {
+                    GenerateMod(countries);
+                }
+            })
+            .ContinueWith(task =>
+            {
+                if (task.IsFaulted)
+                {
+                    Log.Error(task.Exception);
+                }
+            });
+
+        IsGenerating = false;
+    }
+
+    private void GenerateMod(IEnumerable<CountryInfo> countries)
+    {
+        string modPath = Path.Combine(settingService.OutputFolderPath, App.ModName);
+        if (!Directory.Exists(modPath))
+        {
+            Directory.CreateDirectory(modPath);
+        }
+        string historyPath = Path.Combine(modPath, "history", "states");
+        if (!Directory.Exists(historyPath))
+        {
+            Directory.CreateDirectory(historyPath);
+        }
+
+        CreateModDescriptionFile(modPath);
+
+        foreach (var country in countries)
+        {
+            country.WriteToFiles();
+        }
+    }
+
+    private void CreateModDescriptionFile(string modFolderPath)
+    {
+        string modDescriptionFilePath = Path.Combine(settingService.OutputFolderPath, $"{App.ModName}.mod");
+        string modFilePath = Path.Combine(modFolderPath, "descriptor.mod");
+        Child[] children =
+        [
+            ChildHelper.LeafQString("name", App.ModName),
+            ChildHelper.LeafQString("path", modFolderPath.Replace('\\', '/')),
+            ChildHelper.LeafQString("version", "0.1.0-beta"),
+            ChildHelper.LeafQString("supported_version", "1.16.*"),
+            ChildHelper.LeafQString("replace_path", "history/states")
+        ];
+        string content = CKPrinter.PrettyPrintStatements(
+            children.Select(child => child.GetRawStatement("mod"))
+        );
+        File.WriteAllText(modDescriptionFilePath, content);
+        File.WriteAllText(modFilePath, content);
     }
 
     private List<State> GetStates(string stateFolder)
@@ -100,9 +216,9 @@ public sealed partial class MainWindowViewModel(AppSettingService settingService
         {
             state.Manpower = manpowerValue;
         }
-        else if (leaf.Key.EqualsIgnoreCase("state_category"))
+        else if (leaf.Key.EqualsIgnoreCase("impassable") && leaf.Value.TryGetBool(out bool isImpassable))
         {
-            state.Category = leaf.ValueText;
+            state.IsImpassable = isImpassable;
         }
     }
 
@@ -146,5 +262,13 @@ public sealed partial class MainWindowViewModel(AppSettingService settingService
         }
 
         return victoryPointList.ToArray();
+    }
+
+    partial void OnGenerateCountryCountChanged(int value)
+    {
+        if (value > 0)
+        {
+            settingService.GenerateCountryCount = value;
+        }
     }
 }

@@ -2,7 +2,6 @@
 using System.Diagnostics;
 using System.Drawing;
 using System.Drawing.Imaging;
-using System.Text.Json;
 using NLog;
 using RLMod.Core.Extensions;
 using RLMod.Core.Models.Map;
@@ -13,28 +12,80 @@ public sealed class ProvinceParser
 {
     private static readonly Logger Log = LogManager.GetCurrentClassLogger();
 
-    public static void DoParser()
+    public static bool TryParse(string gameRootPath, out IReadOnlyDictionary<int, Province> provinces)
+    {
+        return TryParse(
+            Path.Combine(gameRootPath, "map", "provinces.bmp"),
+            Path.Combine(gameRootPath, "map", "definition.csv"),
+            Path.Combine(gameRootPath, "map", "adjacencies.csv"),
+            out provinces
+        );
+    }
+
+    private static bool TryParse(
+        string provincesFilePath,
+        string definitionFilePath,
+        string adjacenciesFilePath,
+        out IReadOnlyDictionary<int, Province> provinces
+    )
     {
         Log.Info("Starting province parser...");
 
-        string provincesFilePath = @"D:\SteamLibrary\steamapps\common\Hearts of Iron IV\map\provinces.bmp";
-        string definitionFilePath = @"D:\SteamLibrary\steamapps\common\Hearts of Iron IV\map\definition.csv";
-        string provincesJsonFilePath = @"D:\Worktable\hoi4_map_reader\State_reader\out\provinces.json";
+        try
+        {
+            string[] csvLines = File.ReadAllLines(definitionFilePath);
+            var provincesMap = new Dictionary<int, Province>(csvLines.Length);
+            var colorToProvinceId = new Dictionary<Rgb, int>(csvLines.Length);
 
-        string[] csvLines = File.ReadAllLines(definitionFilePath);
-        var provinces = new Dictionary<int, Province>(csvLines.Length);
-        var colorToProvinceId = new Dictionary<Rgb, int>(csvLines.Length);
+            Log.Info("Parsering {Path}", definitionFilePath);
 
-        Log.Info("Parsering {Path}", definitionFilePath);
-        ProvinceScvParser(csvLines, provinces, colorToProvinceId);
+            ParseProvinceScv(csvLines, provincesMap, colorToProvinceId);
+            ParseProvinceBmp(provincesFilePath, provincesMap, colorToProvinceId);
+            ParseAdjacenciesFile(adjacenciesFilePath, provincesMap);
 
-        ProvinceBmpParser(provincesFilePath, provinces, colorToProvinceId);
-
-        ProvinceJsonSerialization(provincesJsonFilePath, provinces);
-        Log.Info("Province parser finish.");
+            Log.Info("Province parser finish.");
+            provinces = provincesMap;
+            return true;
+        }
+        catch (Exception e)
+        {
+            Log.Error(e, "解析 Province 文件失败");
+            provinces = new Dictionary<int, Province>();
+            return false;
+        }
     }
 
-    private static void ProvinceScvParser(
+    private static void ParseAdjacenciesFile(
+        string adjacenciesFilePath,
+        Dictionary<int, Province> provincesMap
+    )
+    {
+        foreach (string line in File.ReadAllLines(adjacenciesFilePath))
+        {
+            string[] fields = line.Split(';');
+            if (fields.Length < 2)
+            {
+                continue;
+            }
+
+            if (
+                int.TryParse(fields[0], out int fromProvinceId)
+                && int.TryParse(fields[1], out int toProvinceId)
+            )
+            {
+                if (provincesMap.TryGetValue(fromProvinceId, out var fromProvince))
+                {
+                    fromProvince.Adjacencies.Add(toProvinceId);
+                }
+                if (provincesMap.TryGetValue(toProvinceId, out var toProvince))
+                {
+                    toProvince.Adjacencies.Add(fromProvinceId);
+                }
+            }
+        }
+    }
+
+    private static void ParseProvinceScv(
         string[] csvLines,
         Dictionary<int, Province> provinces,
         Dictionary<Rgb, int> colorToProvinceId
@@ -67,7 +118,7 @@ public sealed class ProvinceParser
         }
     }
 
-    private static void ProvinceBmpParser(
+    private static void ParseProvinceBmp(
         string provincesFilePath,
         Dictionary<int, Province> provinces,
         Dictionary<Rgb, int> colorToProvinceId
@@ -134,18 +185,5 @@ public sealed class ProvinceParser
             provinces[provinceA].Adjacencies.Add(provinceB);
             provinces[provinceB].Adjacencies.Add(provinceA);
         }
-    }
-
-    private static void ProvinceJsonSerialization(
-        string provincesJsonFilePath,
-        Dictionary<int, Province> provinces
-    )
-    {
-        string jsonString = JsonSerializer.Serialize(
-            provinces,
-            new JsonSerializerOptions { WriteIndented = true }
-        );
-        File.WriteAllText(provincesJsonFilePath, jsonString);
-        Log.Info("Provinces data has been written to {provincesJsonFilePath}", provincesJsonFilePath);
     }
 }
